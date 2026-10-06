@@ -7,10 +7,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, LogOut, Menu, Moon, Plus, Sun, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, LayoutDashboard, LogOut, Menu, Moon, Plus, Sun, X } from "lucide-react";
 import { instance } from "@/config/instance";
-import { api, useSpaces } from "@/lib/client/api";
-import { openSpaceForm } from "@/lib/client/store";
+import { api, spaceActions, useSpaces } from "@/lib/client/api";
+import { openSpaceForm, toastError } from "@/lib/client/store";
 import { spaceColorHex } from "@/lib/domain";
 import { cn } from "@/components/ui/cn";
 import { TaskEditor } from "@/components/task/task-editor";
@@ -75,6 +75,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 function Sidebar() {
   const pathname = usePathname();
   const { spaces, isLoading } = useSpaces();
+  /** "Arrange" mode: each space gets up/down arrows instead of being a link. */
+  const [sorting, setSorting] = useState(false);
+
+  const move = (index: number, delta: -1 | 1) => {
+    const ids = spaces.map((s) => s.id);
+    const target = index + delta;
+    if (target < 0 || target >= ids.length) return;
+    [ids[index], ids[target]] = [ids[target], ids[index]];
+    spaceActions.reorder(ids).catch(toastError);
+  };
 
   return (
     <nav className="flex h-full flex-col px-3 pt-5 pb-24" aria-label="ניווט ראשי">
@@ -93,8 +103,22 @@ function Sidebar() {
         </NavLink>
       </div>
 
-      <div className="mt-6 mb-1 flex items-center justify-between px-2">
-        <span className="text-xs font-semibold text-ink-muted">מרחבים</span>
+      <div className="mt-6 mb-1 flex items-center gap-1 px-2">
+        <span className="flex-1 text-xs font-semibold text-ink-muted">מרחבים</span>
+        {spaces.length > 1 && (
+          <button
+            onClick={() => setSorting((v) => !v)}
+            className={cn(
+              "grid size-7 place-items-center rounded-md hover:bg-ink-2 hover:text-ink-text",
+              sorting ? "bg-ink-2 text-brass" : "text-ink-muted",
+            )}
+            aria-pressed={sorting}
+            aria-label={sorting ? "סיום סידור המרחבים" : "שינוי סדר המרחבים"}
+            title={sorting ? "סיום" : "שינוי סדר"}
+          >
+            {sorting ? <Check className="size-4" /> : <ArrowUpDown className="size-4" />}
+          </button>
+        )}
         <button
           onClick={() => openSpaceForm({ mode: "create" })}
           className="grid size-7 place-items-center rounded-md text-ink-muted hover:bg-ink-2 hover:text-ink-text"
@@ -108,8 +132,33 @@ function Sidebar() {
       <ul className="scroll-quiet min-h-0 flex-1 space-y-0.5 overflow-y-auto">
         {isLoading &&
           [0, 1, 2].map((i) => <li key={i} className="mx-2 my-2 h-6 animate-pulse rounded bg-ink-2" />)}
-        {spaces.map((s) => {
+        {spaces.map((s, i) => {
           const href = `/spaces/${s.id}`;
+          if (sorting)
+            return (
+              <li key={s.id} className="flex h-10 items-center gap-2.5 rounded-md px-2 text-[15px] text-ink-text">
+                <span className="h-4 w-1 shrink-0 rounded-full" style={{ background: spaceColorHex(s.color) }} />
+                <span className="min-w-0 flex-1 truncate" dir="auto">
+                  {s.name}
+                </span>
+                <button
+                  onClick={() => move(i, -1)}
+                  disabled={i === 0}
+                  aria-label={`העלאת ${s.name}`}
+                  className="grid size-7 place-items-center rounded-md text-ink-muted hover:bg-ink-2 hover:text-ink-text disabled:opacity-30"
+                >
+                  <ArrowUp className="size-4" />
+                </button>
+                <button
+                  onClick={() => move(i, 1)}
+                  disabled={i === spaces.length - 1}
+                  aria-label={`הורדת ${s.name}`}
+                  className="grid size-7 place-items-center rounded-md text-ink-muted hover:bg-ink-2 hover:text-ink-text disabled:opacity-30"
+                >
+                  <ArrowDown className="size-4" />
+                </button>
+              </li>
+            );
           return (
             <li key={s.id}>
               <NavLink href={href} active={pathname === href}>

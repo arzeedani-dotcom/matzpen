@@ -242,7 +242,7 @@ describe("budget", () => {
     await db().insert(agentUsage).values({ month: "2026-10", costUsd: 1 });
     const nov = new Date("2026-11-01T00:30:00+02:00"); // already November in Jerusalem
     expect(monthKey(nov)).toBe("2026-11");
-    expect(monthKey(new Date("2026-10-31T21:30:00Z"))).toBe("2026-11");
+    expect(monthKey(new Date("2026-10-31T22:30:00Z"))).toBe("2026-11"); // 00:30 in Israel (UTC+2 after the clocks change)
     await expect(checkBudget(0.01, OCT)).rejects.toThrow("תקרת התקציב");
     const r = await checkBudget(0.01, nov);
     await recordUsage(r, { prompt_tokens: 100, completion_tokens: 10 });
