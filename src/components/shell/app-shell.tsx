@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowDown, ArrowUp, ArrowUpDown, Check, LayoutDashboard, LogOut, Menu, Moon, Plus, Sun, X } from "lucide-react";
@@ -25,6 +25,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [drawerPath, setDrawerPath] = useState<string | null>(null);
   const drawer = drawerPath === pathname;
   const setDrawer = (open: boolean) => setDrawerPath(open ? pathname : null);
+
+  // Esc closes the drawer, like every other overlay here.
+  useEffect(() => {
+    if (!drawer) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDrawerPath(null);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [drawer]);
 
   return (
     <div className="flex min-h-dvh">

@@ -1,13 +1,18 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
-import { dismissToast, useToasts } from "@/lib/client/store";
+import { dismissToast, useToasts, useTopDialog } from "@/lib/client/store";
 import { cn } from "@/components/ui/cn";
 
-/** Toasts sit bottom-center, clear of the agent button in the bottom-right corner. */
+/**
+ * Toasts sit bottom-center, clear of the agent button in the bottom-right corner. While a
+ * modal is open they render inside it — anything outside a modal <dialog> is covered and inert.
+ */
 export function Toaster() {
   const toasts = useToasts();
-  return (
+  const host = useTopDialog();
+  const region = (
     <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-[60] lg:bottom-5 flex flex-col items-center gap-2 px-4">
       {toasts.map((t) => (
         <div
@@ -38,4 +43,5 @@ export function Toaster() {
       ))}
     </div>
   );
+  return host ? createPortal(region, host) : region;
 }

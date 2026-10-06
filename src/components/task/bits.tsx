@@ -17,15 +17,22 @@ import {
 } from "@/lib/domain";
 import { cn } from "@/components/ui/cn";
 
+/**
+ * Priority-colored text. In dark mode the fixed hues are lifted toward white so small text
+ * stays readable on the dark surfaces (the same lift the list's group headers use).
+ */
+const PRIORITY_TEXT = "text-[var(--pc)] dark:text-[color-mix(in_srgb,var(--pc)_72%,white)]";
+
 export function PriorityBadge({ priority, compact = false }: { priority: Priority; compact?: boolean }) {
   const m = PRIORITY_META[priority];
   return (
     <span
       className={cn(
         "inline-flex items-center gap-1 rounded-[var(--radius-chip)] font-medium leading-none",
+        PRIORITY_TEXT,
         compact ? "px-1.5 py-1 text-[11px]" : "px-2 py-1 text-xs",
       )}
-      style={{ color: m.color, background: `color-mix(in srgb, ${m.color} 13%, transparent)` }}
+      style={{ "--pc": m.color, background: `color-mix(in srgb, ${m.color} 13%, transparent)` } as React.CSSProperties}
       title={`עדיפות ${m.label}`}
     >
       <span aria-hidden>{m.mark}</span>
@@ -111,11 +118,14 @@ export function PriorityPicker({ value, onChange }: { value: Priority; onChange:
             role="radio"
             aria-checked={active}
             onClick={() => onChange(p)}
-            className="flex h-10 items-center justify-center gap-1 rounded-[var(--radius-chip)] border text-sm font-medium transition-colors"
+            className={cn(
+              "flex h-10 items-center justify-center gap-1 rounded-[var(--radius-chip)] border text-sm font-medium transition-colors",
+              !active && PRIORITY_TEXT,
+            )}
             style={
               active
                 ? { background: m.color, borderColor: m.color, color: "#fff" }
-                : { borderColor: "var(--line)", color: m.color }
+                : ({ borderColor: "var(--line)", "--pc": m.color } as React.CSSProperties)
             }
           >
             <span aria-hidden>{m.mark}</span>

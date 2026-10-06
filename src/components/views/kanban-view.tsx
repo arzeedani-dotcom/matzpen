@@ -5,7 +5,7 @@ import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   closestCorners,
   useDroppable,
@@ -77,7 +77,9 @@ export function KanbanView({ space, tasks, today }: { space: Space; tasks: Task[
   const active = activeId ? (byId.get(activeId) ?? null) : null;
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    // Mouse and touch separately: a PointerSensor would also grab touches without the hold
+    // delay, and the browser then cancels that pointer as soon as it starts to scroll.
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,

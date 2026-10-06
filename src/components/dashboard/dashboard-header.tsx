@@ -17,8 +17,9 @@ export function DashboardHeader({ today, summary }: { today: string; summary: st
     <header className="pt-2 sm:pt-4">
       <h1 className="text-[2rem] leading-[1.15] font-semibold tracking-[-0.01em] text-text sm:text-5xl sm:leading-[1.1] lg:text-[3.4rem]">
         <time dateTime={today}>
-          {date}
-          <span className="ms-3 align-baseline text-[0.5em] font-normal tracking-normal text-faint">{year}</span>
+          {date}{" "}
+          {/* A real space (not only margin), so the date reads "…באוקטובר 2026" to a screen reader and in copied text. */}
+          <span className="ms-2 align-baseline text-[0.5em] font-normal tracking-normal text-faint">{year}</span>
         </time>
       </h1>
       <div className="mt-3 flex min-h-7 items-center gap-2.5 sm:mt-4">

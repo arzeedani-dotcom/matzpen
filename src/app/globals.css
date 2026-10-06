@@ -9,6 +9,11 @@
  * today's date, the agent button, keyboard focus.
  */
 :root {
+  /* Both real Plex faces come before any fallback. Each next/font variable ends with a local
+     Arial "Fallback" face that has no unicode-range, so with var(--font-hebrew) first that
+     Arial would claim every Arabic glyph and IBM Plex Sans Arabic would never be used.
+     The variables stay at the end for the moments before the web fonts arrive. */
+  --font-stack: "IBM Plex Sans Hebrew", "IBM Plex Sans Arabic", var(--font-hebrew), var(--font-arabic), system-ui, sans-serif;
   --paper: #f3f6f6;
   --surface: #ffffff;
   --surface-2: #f8fafa;
@@ -68,7 +73,7 @@
   --color-danger: var(--danger);
   --color-success: var(--success);
   --shadow-pop: var(--shadow-pop);
-  --font-sans: var(--font-hebrew), var(--font-arabic), system-ui, sans-serif;
+  --font-sans: var(--font-stack);
   --radius-chip: 6px;
   --radius-card: 10px;
   --radius-panel: 16px;
@@ -81,7 +86,7 @@ body {
 }
 
 body {
-  font-family: var(--font-hebrew), var(--font-arabic), system-ui, sans-serif;
+  font-family: var(--font-stack);
   font-size: 15px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;

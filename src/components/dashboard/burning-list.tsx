@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { mutate } from "swr";
-import { keys, taskActions } from "@/lib/client/api";
+import { keys, optimistic, taskActions } from "@/lib/client/api";
 import { openTaskEditor, toast, toastError } from "@/lib/client/store";
 import { PRIORITY_META, spaceColorHex, type DashboardData, type Space, type Task } from "@/lib/domain";
 import { DueLabel, PriorityBadge, TaskCheck } from "@/components/task/bits";
@@ -64,7 +64,7 @@ function withTask(d: DashboardData, task: Task, group: Group, index: number): Da
 /** Complete a task from the dashboard: it leaves the list at once, with an undo in the toast. */
 function useComplete(dashKey: string) {
   return async (task: Task, group: Group, index: number) => {
-    await mutate<DashboardData>(dashKey, (d) => (d ? withoutTask(d, task) : d), { revalidate: false });
+    const rollback = await optimistic<DashboardData>(dashKey, (d) => (d ? withoutTask(d, task) : d));
     try {
       const saved = await taskActions.update(task, { status: "done" });
       void mutate(keys.tasks(task.spaceId));
@@ -89,7 +89,7 @@ function useComplete(dashKey: string) {
         },
       });
     } catch (e) {
-      void mutate(dashKey);
+      await rollback();
       toastError(e);
     }
   };

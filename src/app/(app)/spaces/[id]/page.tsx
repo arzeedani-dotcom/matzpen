@@ -16,7 +16,7 @@ import { CalendarView } from "@/components/views/calendar-view";
 export default function SpacePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { space, isLoading } = useSpace(id);
-  const { tasks, isLoading: tasksLoading, error } = useSpaceTasks(space ? id : null);
+  const { tasks, loaded, isLoading: tasksLoading, error } = useSpaceTasks(space ? id : null);
   const today = useToday();
   usePageAgentScope({ mode: "spaces", spaceIds: [id] });
 
@@ -79,7 +79,7 @@ export default function SpacePage({ params }: { params: Promise<{ id: string }> 
               );
             })}
           </div>
-          <Button variant="ghost" className="w-10 px-0" aria-label="הגדרות מרחב" title="הגדרות מרחב" onClick={() => openSpaceForm({ mode: "edit", space })}>
+          <Button variant="ghost" size="icon" aria-label="הגדרות מרחב" title="הגדרות מרחב" onClick={() => openSpaceForm({ mode: "edit", space })}>
             <Settings2 className="size-5" />
           </Button>
           <Button variant="primary" onClick={() => openTaskEditor({ mode: "create", defaults: { spaceId: space.id } })}>
@@ -90,7 +90,7 @@ export default function SpacePage({ params }: { params: Promise<{ id: string }> 
       </header>
 
       <section className="min-h-0 flex-1">
-        {error ? (
+        {error && !loaded ? (
           <p className="p-6 text-danger">{error.message}</p>
         ) : tasksLoading ? (
           <div className="space-y-3 p-6">

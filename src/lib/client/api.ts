@@ -59,6 +59,27 @@ export function refreshAll() {
   return globalMutate((key) => typeof key === "string" && key.startsWith("/api/"));
 }
 
+/**
+ * Change one cached value right away and get back a function that restores exactly what
+ * was there before. Refetching alone is not a rollback: when the connection is gone the
+ * refetch fails too and the optimistic value would stay on screen.
+ */
+export async function optimistic<T>(key: string, change: (data: T | undefined) => T | undefined): Promise<() => Promise<void>> {
+  let before: T | undefined;
+  await globalMutate<T>(
+    key,
+    (data) => {
+      before = data;
+      return change(data);
+    },
+    { revalidate: false },
+  );
+  return async () => {
+    await globalMutate<T>(key, before, { revalidate: false });
+    void globalMutate(key);
+  };
+}
+
 function refreshDashboards() {
   return globalMutate((key) => typeof key === "string" && key.startsWith("/api/dashboard"));
 }
@@ -93,15 +114,14 @@ export const spaceActions = {
     return space;
   },
   async update(id: string, patch: Partial<SpaceInput>): Promise<Space> {
-    await globalMutate<Space[]>(
-      keys.spaces,
-      (list) => list?.map((s) => (s.id === id ? { ...s, ...patch } : s)),
-      { revalidate: false },
-    );
+    const rollback = await optimistic<Space[]>(keys.spaces, (list) => list?.map((s) => (s.id === id ? { ...s, ...patch } : s)));
     try {
-      return await api<Space>(`/api/spaces/${id}`, { method: "PATCH", json: patch });
-    } finally {
+      const saved = await api<Space>(`/api/spaces/${id}`, { method: "PATCH", json: patch });
       await globalMutate(keys.spaces);
+      return saved;
+    } catch (e) {
+      await rollback();
+      throw e;
     }
   },
   async remove(id: string): Promise<{ deletedTasks: number }> {
@@ -110,19 +130,20 @@ export const spaceActions = {
     return result;
   },
   async reorder(ids: string[]): Promise<void> {
-    await globalMutate<Space[]>(
-      keys.spaces,
-      (list) => {
-        if (!list) return list;
-        const byId = new Map(list.map((s) => [s.id, s]));
-        return ids.flatMap((id, i) => {
-          const s = byId.get(id);
-          return s ? [{ ...s, position: i }] : [];
-        });
-      },
-      { revalidate: false },
-    );
-    await api(`/api/spaces/reorder`, { method: "POST", json: { ids } });
+    const rollback = await optimistic<Space[]>(keys.spaces, (list) => {
+      if (!list) return list;
+      const byId = new Map(list.map((s) => [s.id, s]));
+      return ids.flatMap((id, i) => {
+        const s = byId.get(id);
+        return s ? [{ ...s, position: i }] : [];
+      });
+    });
+    try {
+      await api(`/api/spaces/reorder`, { method: "POST", json: { ids } });
+    } catch (e) {
+      await rollback();
+      throw e;
+    }
     await globalMutate(keys.spaces);
   },
 };
@@ -131,7 +152,8 @@ export const spaceActions = {
 
 export function useSpaceTasks(spaceId: string | null) {
   const { data, error, isLoading } = useSWR<Task[]>(spaceId ? keys.tasks(spaceId) : null, fetcher);
-  return { tasks: data ?? [], error: error as ApiError | undefined, isLoading };
+  /** `loaded`: there is data to show — a failed background refresh must not hide it. */
+  return { tasks: data ?? [], loaded: data !== undefined, error: error as ApiError | undefined, isLoading };
 }
 
 export interface TaskInput {
@@ -170,14 +192,11 @@ export const taskActions = {
    * is thrown so the caller can show a toast.
    */
   async update(task: Task, patch: TaskChanges): Promise<Task> {
-    const optimistic = applyPatch(task, patch);
+    const next = applyPatch(task, patch);
     const from = keys.tasks(task.spaceId);
     const movedTo = patch.spaceId && patch.spaceId !== task.spaceId ? keys.tasks(patch.spaceId) : null;
-    await globalMutate<Task[]>(
-      from,
-      (list) =>
-        movedTo ? list?.filter((t) => t.id !== task.id) : list?.map((t) => (t.id === task.id ? optimistic : t)),
-      { revalidate: false },
+    const rollback = await optimistic<Task[]>(from, (list) =>
+      movedTo ? list?.filter((t) => t.id !== task.id) : list?.map((t) => (t.id === task.id ? next : t)),
     );
     try {
       const saved = await api<Task>(`/api/tasks/${task.id}`, { method: "PATCH", json: patch });
@@ -191,19 +210,18 @@ export const taskActions = {
       void refreshDashboards();
       return saved;
     } catch (e) {
-      await globalMutate(from);
+      await rollback();
       throw e;
     }
   },
 
   async remove(task: Task): Promise<void> {
-    const key = keys.tasks(task.spaceId);
-    await globalMutate<Task[]>(key, (list) => list?.filter((t) => t.id !== task.id), { revalidate: false });
+    const rollback = await optimistic<Task[]>(keys.tasks(task.spaceId), (list) => list?.filter((t) => t.id !== task.id));
     try {
       await api(`/api/tasks/${task.id}`, { method: "DELETE" });
       void refreshDashboards();
     } catch (e) {
-      await globalMutate(key);
+      await rollback();
       throw e;
     }
   },
@@ -215,8 +233,13 @@ export const taskActions = {
 export function useDashboardSelection() {
   const { data, isLoading } = useSWR<{ spaceIds: string[] | null }>(keys.dashboardSelection, fetcher);
   const save = async (spaceIds: string[] | null) => {
-    await globalMutate(keys.dashboardSelection, { spaceIds }, { revalidate: false });
-    await api(keys.dashboardSelection, { method: "PUT", json: { spaceIds } });
+    const rollback = await optimistic(keys.dashboardSelection, () => ({ spaceIds }));
+    try {
+      await api(keys.dashboardSelection, { method: "PUT", json: { spaceIds } });
+    } catch (e) {
+      await rollback();
+      throw e;
+    }
   };
   return { spaceIds: data?.spaceIds ?? null, isLoading, save };
 }

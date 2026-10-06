@@ -30,7 +30,9 @@ function SpaceFormInner() {
   const [view, setView] = useState<View>(editing?.view ?? "kanban");
   const [saving, setSaving] = useState(false);
   const [deleteStep, setDeleteStep] = useState(0);
-  const { tasks } = useSpaceTasks(editing?.id ?? null);
+  const [deleting, setDeleting] = useState(false);
+  // The warning names how many tasks go with the space, so it waits until they are counted.
+  const { tasks, isLoading: counting } = useSpaceTasks(editing?.id ?? null);
 
   useEffect(() => {
     setTimeout(() => document.getElementById("space-name")?.focus(), 30);
@@ -60,7 +62,8 @@ function SpaceFormInner() {
   };
 
   const remove = async () => {
-    if (!editing) return;
+    if (!editing || deleting) return;
+    setDeleting(true);
     try {
       const { deletedTasks } = await spaceActions.remove(editing.id);
       toast(deletedTasks ? `המרחב נמחק יחד עם ${deletedTasks} משימות` : "המרחב נמחק");
@@ -68,6 +71,7 @@ function SpaceFormInner() {
       router.push("/");
     } catch (e) {
       toastError(e);
+      setDeleting(false);
     }
   };
 
@@ -159,17 +163,19 @@ function SpaceFormInner() {
         {editing && deleteStep > 0 && (
           <div className="rounded-[var(--radius-card)] border border-danger/40 bg-[color-mix(in_srgb,var(--danger)_7%,transparent)] p-4">
             <p className="font-medium text-danger">
-              {tasks.length
+              {counting
+                ? "סופר את המשימות במרחב…"
+                : tasks.length
                 ? `מחיקת המרחב תמחק גם ${tasks.length} משימות. אי אפשר לבטל את זה.`
                 : "המרחב ריק. מחיקה לצמיתות?"}
             </p>
             <div className="mt-3 flex gap-2">
               {deleteStep === 1 ? (
-                <Button variant="danger" size="sm" className="border border-danger" onClick={() => setDeleteStep(2)}>
+                <Button variant="danger" size="sm" className="border border-danger" onClick={() => setDeleteStep(2)} disabled={counting}>
                   הבנתי, להמשיך
                 </Button>
               ) : (
-                <Button size="sm" className="bg-danger text-white hover:brightness-110" onClick={remove}>
+                <Button variant="danger-solid" size="sm" onClick={remove} disabled={deleting}>
                   מחיקה סופית
                 </Button>
               )}

@@ -4,7 +4,7 @@ import { Suspense, useMemo, useState } from "react";
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
   TouchSensor,
   pointerWithin,
   useDraggable,
@@ -61,7 +61,9 @@ function Calendar({ space, tasks, today }: Props) {
   const weeks = days.length / 7;
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    // Mouse and touch separately: a PointerSensor would also grab touches without the hold
+    // delay, and the browser then cancels that pointer as soon as it starts to scroll.
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 220, tolerance: 8 } }),
   );
 
@@ -83,13 +85,16 @@ function Calendar({ space, tasks, today }: Props) {
   };
 
   // RTL: the future is to the left.
-  const onKeyDown = (e: React.KeyboardEvent) => {
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const el = e.target as HTMLElement;
     if (el.closest("input, textarea, select, dialog") || e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.key === "ArrowLeft" || e.key === "PageDown") setMonth(shiftMonth(month, 1));
     else if (e.key === "ArrowRight" || e.key === "PageUp") setMonth(shiftMonth(month, -1));
     else return;
     e.preventDefault();
+    // The focused day may belong to the month that just left the screen; keep focus in the
+    // calendar so the next arrow press still works.
+    if (el.closest('[role="grid"]')) e.currentTarget.focus({ preventScroll: true });
   };
 
   const weekdayOrder = Array.from({ length: 7 }, (_, i) => (i + instance.weekStartsOn) % 7);
@@ -103,7 +108,7 @@ function Calendar({ space, tasks, today }: Props) {
       onDragEnd={onDragEnd}
       onDragCancel={() => setActiveId(null)}
     >
-      <div className="flex flex-col lg:flex-row" onKeyDown={onKeyDown}>
+      <div className="flex flex-col lg:flex-row" onKeyDown={onKeyDown} tabIndex={-1} style={{ outline: "none" }}>
         <div className="min-w-0 flex-1 px-2 pt-3 sm:px-6 sm:pt-4">
           <div className="mb-3 flex items-center gap-2 px-2 sm:px-0">
             <h2 className="text-xl font-semibold" aria-live="polite">
@@ -113,10 +118,10 @@ function Calendar({ space, tasks, today }: Props) {
               <Button size="sm" onClick={() => setMonth(monthKeyOf(today))} disabled={month === monthKeyOf(today)}>
                 היום
               </Button>
-              <Button size="sm" variant="ghost" className="w-9 px-0" aria-label="החודש הקודם" title="החודש הקודם (חץ ימינה)" onClick={() => setMonth(shiftMonth(month, -1))}>
+              <Button size="icon-sm" variant="ghost" aria-label="החודש הקודם" title="החודש הקודם (חץ ימינה)" onClick={() => setMonth(shiftMonth(month, -1))}>
                 <ChevronRight className="size-5" />
               </Button>
-              <Button size="sm" variant="ghost" className="w-9 px-0" aria-label="החודש הבא" title="החודש הבא (חץ שמאלה)" onClick={() => setMonth(shiftMonth(month, 1))}>
+              <Button size="icon-sm" variant="ghost" aria-label="החודש הבא" title="החודש הבא (חץ שמאלה)" onClick={() => setMonth(shiftMonth(month, 1))}>
                 <ChevronLeft className="size-5" />
               </Button>
             </div>

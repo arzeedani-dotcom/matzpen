@@ -4,8 +4,9 @@
  */
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import { X } from "lucide-react";
+import { registerDialog } from "@/lib/client/store";
 import { cn } from "./cn";
 
 export function Modal({
@@ -28,17 +29,20 @@ export function Modal({
   accent?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
 
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
     if (open && !d.open) d.showModal();
     if (!open && d.open) d.close();
+    if (open) return registerDialog(d);
   }, [open]);
 
   return (
     <dialog
       ref={ref}
+      aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
@@ -61,7 +65,9 @@ export function Modal({
             className="flex items-center gap-3 border-b border-line px-5 py-4"
             style={accent ? { boxShadow: `inset -4px 0 0 ${accent}` } : undefined}
           >
-            <h2 className="min-w-0 flex-1 text-lg font-semibold">{title}</h2>
+            <h2 id={titleId} className="min-w-0 flex-1 text-lg font-semibold">
+              {title}
+            </h2>
             <button
               type="button"
               onClick={onClose}

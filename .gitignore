@@ -46,4 +46,5 @@ next-env.d.ts
 seed/private/
 /test-results/
 /playwright-report/
+/tests/e2e/.auth/
 .dev-db*/

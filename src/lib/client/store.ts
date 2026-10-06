@@ -79,6 +79,19 @@ export function toast(message: string, opts: { tone?: Toast["tone"]; action?: To
 export const dismissToast = (id: number) => toasts.set((list) => list.filter((t) => t.id !== id));
 export const useToasts = () => useStore(toasts);
 
+/**
+ * The open modal dialogs, newest last. A modal <dialog> sits in the top layer and makes the
+ * rest of the page inert, so the toasts render inside the top one to stay visible and clickable.
+ */
+const dialogs = createStore<HTMLElement[]>([]);
+export function registerDialog(el: HTMLElement) {
+  dialogs.set((list) => [...list, el]);
+  return () => dialogs.set((list) => list.filter((d) => d !== el));
+}
+export function useTopDialog(): HTMLElement | null {
+  return useStore(dialogs).at(-1) ?? null;
+}
+
 /** Show an error from a failed action as a toast. */
 export function toastError(e: unknown) {
   toast(e instanceof Error ? e.message : "הפעולה נכשלה", { tone: "error" });

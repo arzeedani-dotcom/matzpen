@@ -57,6 +57,7 @@ function TaskEditorInner() {
   const [draft, setDraft] = useState<Draft | null>(initial);
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [editingNotes, setEditingNotes] = useState(state?.mode === "create" || !initial?.notes);
 
   useEffect(() => {
@@ -109,13 +110,15 @@ function TaskEditorInner() {
   };
 
   const remove = async () => {
-    if (state.mode !== "edit") return;
+    if (state.mode !== "edit" || deleting) return;
+    setDeleting(true);
     try {
       await taskActions.remove(state.task);
       toast("המשימה נמחקה");
       closeTaskEditor();
     } catch (e) {
       toastError(e);
+      setDeleting(false);
     }
   };
 
@@ -144,7 +147,7 @@ function TaskEditorInner() {
             (confirmDelete ? (
               <span className="ms-auto flex items-center gap-2 text-sm">
                 למחוק לצמיתות?
-                <Button variant="danger" size="sm" onClick={remove}>
+                <Button variant="danger" size="sm" onClick={remove} disabled={deleting}>
                   כן, למחוק
                 </Button>
                 <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(false)}>
