@@ -4,7 +4,7 @@
  */
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowDown, ArrowUp, ArrowUpDown, Check, LayoutDashboard, LogOut, Menu, Moon, Plus, Sun, X } from "lucide-react";
@@ -20,10 +20,11 @@ import { CompassMark } from "./compass-mark";
 import { Toaster } from "./toaster";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const [drawer, setDrawer] = useState(false);
   const pathname = usePathname();
-
-  useEffect(() => setDrawer(false), [pathname]);
+  // The drawer belongs to the page it was opened on: following a link closes it.
+  const [drawerPath, setDrawerPath] = useState<string | null>(null);
+  const drawer = drawerPath === pathname;
+  const setDrawer = (open: boolean) => setDrawerPath(open ? pathname : null);
 
   return (
     <div className="flex min-h-dvh">
@@ -184,6 +185,8 @@ function Sidebar() {
         <button
           onClick={async () => {
             await api("/api/auth/logout", { method: "POST" }).catch(() => {});
+            // A full reload, not router.push: it drops every cached query of the signed-in session.
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination
             window.location.href = "/login";
           }}
           className="flex h-9 items-center gap-2 rounded-md px-2 text-sm text-ink-muted hover:bg-ink-2 hover:text-ink-text"
@@ -211,9 +214,19 @@ function NavLink({ href, active, children }: { href: string; active: boolean; ch
   );
 }
 
+/** The theme lives on <html data-theme>, set before paint by the script in the root layout. */
+function subscribeTheme(onChange: () => void) {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  return () => observer.disconnect();
+}
+
 function ThemeToggle() {
-  const [dark, setDark] = useState(false);
-  useEffect(() => setDark(document.documentElement.dataset.theme === "dark"), []);
+  const dark = useSyncExternalStore(
+    subscribeTheme,
+    () => document.documentElement.dataset.theme === "dark",
+    () => false,
+  );
   return (
     <button
       onClick={() => {
@@ -222,7 +235,6 @@ function ThemeToggle() {
         try {
           localStorage.setItem("mz-theme", next);
         } catch {}
-        setDark(!dark);
       }}
       className="flex h-9 items-center gap-2 rounded-md px-2 text-sm text-ink-muted hover:bg-ink-2 hover:text-ink-text"
       aria-label={dark ? "מצב בהיר" : "מצב כהה"}

@@ -32,6 +32,8 @@ export async function api<T>(path: string, init?: RequestInit & { json?: unknown
     throw new ApiError(0, "אין חיבור לשרת. בדוק את החיבור לאינטרנט.");
   }
   if (res.status === 401 && typeof window !== "undefined" && !path.startsWith("/api/auth")) {
+    // A full reload, not router.push: it drops every cached query of the expired session.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
   }
   const data = await res.json().catch(() => null);

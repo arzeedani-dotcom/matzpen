@@ -91,32 +91,27 @@ function Launcher() {
 function Panel() {
   const { spaces } = useSpaces();
   const { scope } = useAgentScope();
-  const [entries, setEntries] = useState<Entry[]>([]);
-  const [loaded, setLoaded] = useState(false);
+  // The conversation lives in this browser only. The panel mounts only after a click,
+  // never during server rendering, so localStorage can be read up front.
+  const [saved] = useState(() => {
+    const list = loadEntries();
+    return { list, lastId: list.reduce((m, e) => Math.max(m, e.id), 0) };
+  });
+  const [entries, setEntries] = useState<Entry[]>(saved.list);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [wide, setWide] = useState(false);
   const [scopeOpen, setScopeOpen] = useState(false);
-  const seq = useRef(0);
+  const seq = useRef(saved.lastId);
   const abort = useRef<AbortController | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
   const textarea = useRef<HTMLTextAreaElement>(null);
-  const entriesRef = useRef<Entry[]>([]);
-  entriesRef.current = entries;
 
-  // The conversation lives in this browser only.
   useEffect(() => {
-    const list = loadEntries();
-    seq.current = list.reduce((m, e) => Math.max(m, e.id), 0);
-    setEntries(list);
-    setLoaded(true);
-  }, []);
-  useEffect(() => {
-    if (!loaded) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(entries.slice(-KEEP)));
     } catch {}
-  }, [entries, loaded]);
+  }, [entries]);
 
   useEffect(() => {
     textarea.current?.focus();
@@ -169,7 +164,7 @@ function Panel() {
     if (!content || busy) return;
     setInput("");
     setScopeOpen(false);
-    const history = [...entriesRef.current.filter((e) => !e.error), { role: "user" as const, content }]
+    const history = [...entries.filter((e) => !e.error), { role: "user" as const, content }]
       .slice(-MAX_HISTORY)
       .map((e) => ({ role: e.role, content: e.content }));
     closeCards("closed");
@@ -259,7 +254,7 @@ function Panel() {
       </header>
 
       <div ref={scroller} className="scroll-quiet min-h-0 flex-1 space-y-3 overflow-y-auto bg-paper px-3 py-4" aria-live="polite">
-        {loaded && entries.length === 0 && !busy && <Welcome onPick={(s) => void send(s)} />}
+        {entries.length === 0 && !busy && <Welcome onPick={(s) => void send(s)} />}
         {entries.map((e) => (
           <Message key={e.id} entry={e} busy={busy !== null} onDecide={decide} />
         ))}

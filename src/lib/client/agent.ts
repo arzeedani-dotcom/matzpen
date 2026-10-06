@@ -24,6 +24,8 @@ async function stream(path: string, body: unknown, onStep: (text: string) => voi
   }
 
   if (res.status === 401) {
+    // A full reload, not router.push: it drops every cached query of the expired session.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
     return { type: "error", message: "פג תוקף הכניסה. מעביר לדף הכניסה…" };
   }
