@@ -194,7 +194,9 @@ export function KanbanView({ space, tasks, today }: { space: Space; tasks: Task[
         },
       }}
     >
-      <div className="scroll-quiet flex h-full snap-x snap-mandatory gap-3 overflow-x-auto px-4 py-4 sm:px-6 lg:snap-none">
+      {/* contain-paint: on a phone, mobile Chrome otherwise sizes the page to the full row of
+          columns (986px in a 390px screen) and opens it scrolled sideways, despite overflow-x-auto. */}
+      <div className="scroll-quiet flex h-full snap-x snap-mandatory gap-3 overflow-x-auto px-4 py-4 contain-paint sm:px-6 lg:snap-none">
         {STATUSES.map((status) => {
           const ids = columns[status];
           const limited = status === "done" && !showAllDone && ids.length > DONE_VISIBLE;

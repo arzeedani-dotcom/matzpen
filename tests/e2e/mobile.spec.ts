@@ -163,3 +163,23 @@ test("dark mode on a phone", async ({ page, makeSpace, shot }) => {
   await expectNoPageHorizontalScroll(page);
   await shot("dashboard-dark");
 });
+
+test("a full kanban with long titles still fits the phone screen (no sideways page)", async ({ page, makeSpace }) => {
+  const long = "E2E כרטיס ארוך — zeedani.com להטמיע את טופס יצירת הקשר עם Resend ולבדוק שהמיילים מגיעים";
+  const { space } = await makeSpace({
+    label: "mfull",
+    view: "kanban",
+    // Like a real board: most cards in the first column, with dates, priorities and notes.
+    tasks: Array.from({ length: 14 }, (_, i) => ({
+      title: `${long} ${i + 1}`,
+      status: i < 10 ? ("new" as const) : ("in_progress" as const),
+      priority: (["urgent", "high", "medium", "low"] as const)[i % 4],
+      dueDate: inDays(i - 3),
+      notes: i % 3 ? null : "https://zeedani.com",
+    })),
+  });
+  await openSpace(page, space.id);
+  await expectNoPageHorizontalScroll(page);
+  // A mixed title that opens with Latin letters still reads right-to-left.
+  await expect(page.getByText(`${long} 1`, { exact: true })).toHaveAttribute("dir", "rtl");
+});

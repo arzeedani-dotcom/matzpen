@@ -171,11 +171,17 @@ export async function mouseDrag(page: Page, source: Locator, target: Locator, of
 
 /** No sideways scrolling of the page itself (inner scrollers like the kanban are fine). */
 export async function expectNoPageHorizontalScroll(page: Page) {
-  const overflow = await page.evaluate(() => {
-    const el = document.scrollingElement ?? document.documentElement;
-    return el.scrollWidth - window.innerWidth;
-  });
-  expect(overflow, "the page must not scroll sideways").toBeLessThanOrEqual(0);
+  // Compare with the SCREEN width: on a phone, mobile Chrome widens the layout viewport (and so
+  // innerWidth) to fit overflowing content, which would make scrollWidth - innerWidth look fine.
+  const screen = page.viewportSize()!.width;
+  const m = await page.evaluate(() => ({
+    scrollWidth: (document.scrollingElement ?? document.documentElement).scrollWidth,
+    innerWidth: window.innerWidth,
+    scrollX: window.scrollX,
+  }));
+  expect(m.scrollWidth, "the page must not scroll sideways").toBeLessThanOrEqual(screen);
+  expect(m.innerWidth, "the layout must not be wider than the screen").toBeLessThanOrEqual(screen);
+  expect(m.scrollX, "the page must not open scrolled sideways").toBe(0);
 }
 
 /** The font the browser actually used to paint a node's text (Chromium only, via the DevTools protocol). */

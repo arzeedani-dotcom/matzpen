@@ -75,7 +75,7 @@ test("RTL page; Hebrew titles in IBM Plex Sans Hebrew, Arabic titles in IBM Plex
 
   const arTitle = page.getByText(arabic, { exact: true });
   const heTitle = page.getByText(hebrew, { exact: true });
-  // Arabic runs right-to-left on its own (dir=auto), aligned to the start like Hebrew.
+  // Arabic runs right-to-left (textDir), aligned to the start like Hebrew.
   expect(await arTitle.evaluate((el) => getComputedStyle(el).direction)).toBe("rtl");
 
   const arFonts = await renderedFonts(page, arTitle);

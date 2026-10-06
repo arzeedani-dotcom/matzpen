@@ -4,7 +4,7 @@ import { test, expect, inDays } from "./support/fixtures";
 
 const chips = (page: Page) => page.getByRole("group", { name: "המרחבים שמוצגים בדשבורד" });
 const group = (page: Page, label: "באיחור" | "להיום" | "דחוף") => page.getByRole("list", { name: new RegExp(`^${label} \\d+$`) });
-const rowTitles = (list: Locator) => list.locator("li button span[dir=auto]").allTextContents();
+const rowTitles = (list: Locator) => list.locator("li button span[dir]").allTextContents();
 
 test("the space selection is saved in the database and survives a reload", async ({ page, api, makeSpace, keepDashboardSelection }) => {
   void keepDashboardSelection;
