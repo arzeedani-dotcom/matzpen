@@ -23,6 +23,19 @@ function dayLines(today: string): string {
   return lines.join("\n");
 }
 
+/**
+ * "By the 10th" resolved in advance: a day not yet passed this month (today included) is this
+ * month, an earlier one is next month. The model got this wrong when left to infer it.
+ */
+export function dayOfMonthRule(today: string): string {
+  const [y, m, d] = today.split("-").map(Number);
+  const thisMonth = today.slice(0, 7);
+  const next = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+  return d === 1
+    ? `"עד ה-N" / "ב-N לחודש": תמיד ${thisMonth}-N.`
+    : `"עד ה-N" / "ב-N לחודש": N מ-${d} עד 31 ← ${thisMonth}-N (החודש). N מ-1 עד ${d - 1} ← ${next}-N (החודש הבא, כי כבר עבר).`;
+}
+
 export function buildSystemPrompt({ today, spaces }: PromptContext): string {
   const ws = weekStart(today, instance.weekStartsOn);
   const scope = spaces.length
@@ -35,7 +48,7 @@ export function buildSystemPrompt({ today, spaces }: PromptContext): string {
 השבוע: ${ws} עד ${addDays(ws, 6)}. שבוע הבא: ${addDays(ws, 7)} עד ${addDays(ws, 13)}.
 14 הימים הקרובים:
 ${dayLines(today)}
-"ביום X" = המופע הקרוב ברשימה (לא היום). "עד ה-N": אם N כבר עבר החודש — החודש הבא. תאריכים בכלים: YYYY-MM-DD בלבד.
+"ביום X" = המופע הקרוב ברשימה (לא היום). ${dayOfMonthRule(today)} תאריכים בכלים: YYYY-MM-DD בלבד.
 
 # תחום (מרחב | מזהה | תצוגה)
 ${scope}

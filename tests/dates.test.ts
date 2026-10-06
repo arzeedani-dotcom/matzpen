@@ -104,6 +104,16 @@ describe("isValidISODate", () => {
   });
 });
 
+describe("agent prompt: 'by the Nth'", () => {
+  it("resolves to this month unless the day already passed, across a year end", async () => {
+    const { dayOfMonthRule } = await import("@/lib/agent/prompt");
+    expect(dayOfMonthRule("2026-10-06")).toContain("N מ-6 עד 31 ← 2026-10-N");
+    expect(dayOfMonthRule("2026-10-06")).toContain("N מ-1 עד 5 ← 2026-11-N");
+    expect(dayOfMonthRule("2026-12-20")).toContain("N מ-1 עד 19 ← 2027-01-N");
+    expect(dayOfMonthRule("2026-10-01")).toContain("תמיד 2026-10-N");
+  });
+});
+
 describe("textDir", () => {
   it("is RTL whenever Hebrew or Arabic appears, LTR only for Latin-only text, RTL when empty", async () => {
     const { textDir } = await import("@/lib/text-dir");
