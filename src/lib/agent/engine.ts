@@ -59,6 +59,9 @@ const RUN_DEADLINE_MS = 50_000;
 const MAX_CALL_MS = 25_000;
 const MIN_CALL_MS = 4_000;
 
+/** The reasoning effort each model accepted, per server instance — a refusal is paid for once, not per call. */
+const reasoningEffort = new Map<string, "low" | "none" | null>();
+
 export class AgentDeadlineError extends Error {
   constructor() {
     super("הבקשה ארוכה מדי לסבב אחד. נסה לפצל אותה לכמה בקשות קצרות.");
@@ -153,7 +156,7 @@ export async function runAgent(req: ChatRequest, emit: (e: AgentEvent) => void, 
       ...history,
     ];
     const model = process.env.OPENAI_MODEL || instance.defaultModel;
-    let withReasoning = true;
+    let effort = reasoningEffort.get(model) ?? "low";
 
     const call = async (toolChoice: "auto" | "none"): Promise<ChatCompletionMessage> => {
       const body: ChatCompletionCreateParamsNonStreaming = {
@@ -163,7 +166,7 @@ export async function runAgent(req: ChatRequest, emit: (e: AgentEvent) => void, 
         tool_choice: toolChoice,
         max_completion_tokens: MAX_OUTPUT_TOKENS,
         prompt_cache_key: "matzpen-agent",
-        ...(withReasoning ? { reasoning_effort: "low" as const } : {}),
+        ...(effort ? { reasoning_effort: effort } : {}),
       };
       const left = deadline - Date.now();
       if (left < MIN_CALL_MS) throw new AgentDeadlineError();
@@ -175,9 +178,11 @@ export async function runAgent(req: ChatRequest, emit: (e: AgentEvent) => void, 
         // A timed-out call may still be billed — keep it charged; other failures are free.
         if (e instanceof APIConnectionTimeoutError) await recordUsage(reservation, null);
         else await releaseReservation(reservation);
-        // Models without reasoning support reject the parameter: retry once without it.
-        if (withReasoning && e instanceof APIError && e.status === 400 && /reasoning/i.test(`${e.param} ${e.message}`)) {
-          withReasoning = false;
+        // Some models refuse reasoning together with function tools ("set reasoning_effort to 'none'"),
+        // others refuse the parameter altogether: step down low → none → omitted, and remember it.
+        if (effort && e instanceof APIError && e.status === 400 && /reasoning/i.test(`${e.param} ${e.message}`)) {
+          effort = effort === "low" ? "none" : null;
+          reasoningEffort.set(model, effort);
           return call(toolChoice);
         }
         throw e;

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/db", async () => (await import("./helpers/test-db")).dbModule());
+import { APIError } from "openai";
 import type { ChatCompletion, ChatCompletionCreateParamsNonStreaming } from "openai/resources/chat/completions";
 import { resetDb } from "./helpers/test-db";
 import { db } from "@/db";
@@ -256,6 +257,29 @@ describe("engine loop", () => {
     const { final } = await collect([user("תמחק את החלב")], { chat: { completions: { create } } });
     expect(final).toMatchObject({ type: "final", pending: { kind: "delete", count: 1 } });
     expect(await listTasks()).toHaveLength(1);
+  });
+
+  it("steps reasoning down to 'none' when the model refuses it with tools, and remembers that", async () => {
+    vi.stubEnv("OPENAI_MODEL", "test-model-tools-no-reasoning");
+    const refusal = () =>
+      new APIError(
+        400,
+        { message: "Function tools with reasoning_effort are not supported for this model. Set reasoning_effort to 'none'." },
+        "Function tools with reasoning_effort are not supported for this model. Set reasoning_effort to 'none'.",
+        new Headers(),
+      );
+    const bodies: ChatCompletionCreateParamsNonStreaming[] = [];
+    const create = vi.fn(async (body: ChatCompletionCreateParamsNonStreaming) => {
+      bodies.push(structuredClone(body));
+      if (body.reasoning_effort === "low") throw refusal();
+      return completion({ content: "שלום" }, bodies.length);
+    });
+    const client: ChatClient = { chat: { completions: { create } } };
+    expect((await collect([user("היי")], client)).final).toEqual({ type: "final", reply: "שלום", changed: false });
+    expect(bodies.map((b) => b.reasoning_effort)).toEqual(["low", "none"]);
+    // The next message goes straight to 'none' — no wasted refused call.
+    await collect([user("שוב")], client);
+    expect(bodies.map((b) => b.reasoning_effort)).toEqual(["low", "none", "none"]);
   });
 
   it("parses bare yes/no in Hebrew, Arabic and English only", () => {
