@@ -43,6 +43,7 @@ npm run dev
 ```bash
 npm test            # לוגיקה, שכבת נתונים ואכיפת הסוכן — מול Postgres אמיתי בזיכרון
 npm run typecheck
+npm run check:secrets   # סריקת סודות — להריץ לפני כל push לריפו ציבורי
 BASE_URL=https://… APP_PASSWORD=… node scripts/agent-acceptance.mjs   # 11 תרחישי קבלה מול המודל האמיתי
 ```
 
