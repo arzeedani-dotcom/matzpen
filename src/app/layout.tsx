@@ -21,9 +21,15 @@ export const metadata: Metadata = {
   title: { default: instance.productName, template: `%s · ${instance.productName}` },
   description: instance.tagline,
   robots: { index: false, follow: false },
+  appleWebApp: { capable: true, title: instance.productName, statusBarStyle: "black-translucent" },
+  formatDetection: { telephone: false },
 };
 
 export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Draw under the iPhone notch / home indicator; layouts pad with env(safe-area-inset-*).
+  viewportFit: "cover",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#0e3b43" },
     { media: "(prefers-color-scheme: dark)", color: "#071f23" },

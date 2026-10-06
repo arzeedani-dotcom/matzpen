@@ -36,7 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {drawer && (
         <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal aria-label="תפריט">
           <button className="absolute inset-0 bg-black/40" aria-label="סגירת התפריט" onClick={() => setDrawer(false)} />
-          <aside className="animate-pop absolute inset-y-0 right-0 w-72 max-w-[85vw] bg-ink text-ink-text shadow-xl">
+          <aside className="animate-pop pt-safe pb-safe absolute inset-y-0 right-0 w-72 max-w-[85vw] bg-ink text-ink-text shadow-xl">
             <button
               onClick={() => setDrawer(false)}
               className="absolute top-3 left-3 grid size-9 place-items-center rounded-full text-ink-muted hover:bg-ink-2"
@@ -50,7 +50,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 bg-ink px-4 text-ink-text lg:hidden">
+        <header className="pt-safe sticky top-0 z-30 bg-ink text-ink-text lg:hidden">
+          <div className="flex h-14 items-center gap-3 px-4">
           <button onClick={() => setDrawer(true)} className="grid size-9 place-items-center rounded-full hover:bg-ink-2" aria-label="פתיחת התפריט">
             <Menu className="size-5" />
           </button>
@@ -58,6 +59,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <CompassMark className="size-6" />
             {instance.productName}
           </Link>
+          </div>
         </header>
         <main className="min-w-0 flex-1">{children}</main>
       </div>

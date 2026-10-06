@@ -56,7 +56,7 @@ export function Modal({
       )}
     >
       {open && (
-        <div className="flex h-full max-h-[inherit] flex-col">
+        <div className="pt-safe pb-safe flex h-full max-h-[inherit] flex-col sm:pt-0 sm:pb-0">
           <header
             className="flex items-center gap-3 border-b border-line px-5 py-4"
             style={accent ? { boxShadow: `inset -4px 0 0 ${accent}` } : undefined}

@@ -8,7 +8,7 @@ import { cn } from "@/components/ui/cn";
 export function Toaster() {
   const toasts = useToasts();
   return (
-    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-24 z-[60] lg:bottom-5 flex flex-col items-center gap-2 px-4">
+    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-[60] lg:bottom-5 flex flex-col items-center gap-2 px-4">
       {toasts.map((t) => (
         <div
           key={t.id}
