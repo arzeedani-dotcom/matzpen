@@ -205,6 +205,12 @@ function Panel() {
     textarea.current?.focus();
   };
 
+  // The picker unmounts with focus inside it; keep focus in the window so Esc still closes it.
+  const closeScope = () => {
+    setScopeOpen(false);
+    textarea.current?.focus();
+  };
+
   return (
     <section
       role="dialog"
@@ -212,7 +218,7 @@ function Panel() {
       onKeyDown={(e) => {
         if (e.key === "Escape") {
           e.stopPropagation();
-          if (scopeOpen) setScopeOpen(false);
+          if (scopeOpen) closeScope();
           else setAgentOpen(false);
         }
       }}
@@ -252,7 +258,7 @@ function Panel() {
         <HeaderButton label="סגירה" onClick={() => setAgentOpen(false)}>
           <X className="size-5" />
         </HeaderButton>
-        {scopeOpen && <ScopePicker spaces={spaces} scope={scope} onClose={() => setScopeOpen(false)} />}
+        {scopeOpen && <ScopePicker spaces={spaces} scope={scope} onClose={closeScope} />}
       </header>
 
       <div ref={scroller} className="scroll-quiet min-h-0 flex-1 space-y-3 overflow-y-auto bg-paper px-3 py-4" aria-live="polite">
