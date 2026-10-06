@@ -156,7 +156,7 @@ export async function runAgent(req: ChatRequest, emit: (e: AgentEvent) => void, 
       ...history,
     ];
     const model = process.env.OPENAI_MODEL || instance.defaultModel;
-    let effort = reasoningEffort.get(model) ?? "low";
+    let effort = reasoningEffort.has(model) ? reasoningEffort.get(model)! : ("low" as "low" | "none" | null);
 
     const call = async (toolChoice: "auto" | "none"): Promise<ChatCompletionMessage> => {
       const body: ChatCompletionCreateParamsNonStreaming = {
