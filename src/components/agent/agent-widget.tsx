@@ -51,7 +51,7 @@ function loadEntries(): Entry[] {
 function scopeLabel(scope: AgentScope, spaces: Space[]): string {
   if (scope.mode === "all") return "כל המרחבים";
   const chosen = spaces.filter((s) => scope.spaceIds.includes(s.id));
-  if (chosen.length === 0) return "כל המרחבים";
+  if (chosen.length === 0) return "אף מרחב — בחר";
   if (chosen.length === 1) return chosen[0].name;
   if (chosen.length === spaces.length) return "כל המרחבים";
   return `${chosen.length} מרחבים`;
@@ -148,6 +148,7 @@ function Panel() {
   const finish = (event: Awaited<ReturnType<typeof agentApi.chat>>) => {
     if (event.type === "error") {
       push({ role: "assistant", content: event.message, error: true });
+      void refreshAll();
       return;
     }
     push({
@@ -167,12 +168,13 @@ function Panel() {
     const history = [...entries.filter((e) => !e.error), { role: "user" as const, content }]
       .slice(-MAX_HISTORY)
       .map((e) => ({ role: e.role, content: e.content }));
+    const pendingId = entries.findLast((e) => e.pending && e.pendingState === "open")?.pending?.id;
     closeCards("closed");
     push({ role: "user", content });
     setBusy("חושב…");
     abort.current = new AbortController();
     try {
-      finish(await agentApi.chat({ messages: history, scope }, setBusy, abort.current.signal));
+      finish(await agentApi.chat({ messages: history, scope, pendingId }, setBusy, abort.current.signal));
     } catch {
       // aborted (window closed or a new conversation started)
     } finally {
@@ -343,7 +345,8 @@ function ScopePicker({ spaces, scope, onClose }: { spaces: Space[]; scope: Agent
     const next = new Set(all ? [] : chosen);
     if (next.has(id)) next.delete(id);
     else next.add(id);
-    if (next.size === 0 || next.size === spaces.length) setAgentScopeOverride({ mode: "all" });
+    if (next.size === 0) return;
+    if (next.size === spaces.length) setAgentScopeOverride({ mode: "all" });
     else setAgentScopeOverride({ mode: "spaces", spaceIds: spaces.filter((s) => next.has(s.id)).map((s) => s.id) });
   };
 

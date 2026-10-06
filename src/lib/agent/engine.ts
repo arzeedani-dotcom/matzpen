@@ -22,7 +22,7 @@ import {
   recordUsage,
   releaseReservation,
 } from "./budget";
-import { confirmPending, findLivePending, resolveScope, supersedePending } from "./guard";
+import { confirmPending, resolveScope, supersedePending } from "./guard";
 import { buildSystemPrompt } from "./prompt";
 import { executeTool, stepText, TOOL_DEFINITIONS } from "./tools";
 import {
@@ -36,7 +36,11 @@ import {
 
 /** The slice of the OpenAI client the engine uses — tests pass a fake. */
 export interface ChatClient {
-  chat: { completions: { create(body: ChatCompletionCreateParamsNonStreaming): Promise<ChatCompletion> } };
+  chat: {
+    completions: {
+      create(body: ChatCompletionCreateParamsNonStreaming, options?: { timeout?: number }): Promise<ChatCompletion>;
+    };
+  };
 }
 
 export interface AgentDeps {
@@ -45,6 +49,20 @@ export interface AgentDeps {
 }
 
 const MAX_MESSAGE_CHARS = 4000;
+
+/**
+ * The chat route may run for 60 s (maxDuration). The whole loop stops calling the model well
+ * before that, so a run always ends with a terminal event and the screen gets refreshed.
+ */
+const RUN_DEADLINE_MS = 50_000;
+const MAX_CALL_MS = 25_000;
+const MIN_CALL_MS = 4_000;
+
+export class AgentDeadlineError extends Error {
+  constructor() {
+    super("הבקשה ארוכה מדי לסבב אחד. נסה לפצל אותה לכמה בקשות קצרות.");
+  }
+}
 
 /** Last MAX_HISTORY messages, starting with a user turn, each capped in length. */
 export function trimHistory(messages: ChatMessage[]): ChatMessage[] {
@@ -90,7 +108,7 @@ function logError(e: unknown): void {
 }
 
 function hebrewError(e: unknown): string {
-  if (e instanceof BudgetExceededError) return e.message;
+  if (e instanceof BudgetExceededError || e instanceof AgentDeadlineError) return e.message;
   if (e instanceof APIConnectionTimeoutError) return "OpenAI לא ענה בזמן. נסה שוב בעוד רגע.";
   if (e instanceof APIError) {
     if (e.status === 401) return "מפתח OpenAI שגוי או לא פעיל.";
@@ -105,7 +123,8 @@ function hebrewError(e: unknown): string {
 function defaultClient(): ChatClient | null {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
-  return new OpenAI({ apiKey, maxRetries: 1, timeout: 25_000 });
+  // No SDK retries: every attempt is billed, and the loop keeps its own deadline.
+  return new OpenAI({ apiKey, maxRetries: 0, timeout: MAX_CALL_MS });
 }
 
 /** Rough size of what we send — for the budget reservation. */
@@ -113,9 +132,15 @@ function promptChars(messages: ChatCompletionMessageParam[]): number {
   return JSON.stringify(messages).length + JSON.stringify(TOOL_DEFINITIONS).length;
 }
 
+function pendingText(pending: PendingActionView): string {
+  return `${pending.summary} — נדרש אישור. אפשר לאשר בכפתורים או לכתוב "כן".`;
+}
+
 export async function runAgent(req: ChatRequest, emit: (e: AgentEvent) => void, deps: AgentDeps = {}): Promise<void> {
   const now = deps.now ?? (() => new Date());
+  const deadline = Date.now() + RUN_DEADLINE_MS;
   let changed = false;
+  let pending: PendingActionView | undefined;
   try {
     const history = trimHistory(req.messages);
     const last = history.at(-1);
@@ -124,16 +149,13 @@ export async function runAgent(req: ChatRequest, emit: (e: AgentEvent) => void, 
       return;
     }
 
-    // A typed "כן"/"לא" answers the live confirmation card — no model involved.
-    const yesNo = history.length > 1 ? parseYesNo(last.content) : null;
-    if (yesNo) {
-      const pendingId = await findLivePending(now());
-      if (pendingId) {
-        emit({ type: "step", text: yesNo === "confirm" ? "מבצע…" : "מבטל…" });
-        const r = await confirmPending(pendingId, yesNo, req.scope, now());
-        emit({ type: "final", reply: r.reply, changed: r.changed });
-        return;
-      }
+    // A typed "כן"/"לא" answers the confirmation card open in this chat — no model involved.
+    const yesNo = req.pendingId && history.length > 1 ? parseYesNo(last.content) : null;
+    if (req.pendingId && yesNo) {
+      emit({ type: "step", text: yesNo === "confirm" ? "מבצע…" : "מבטל…" });
+      const r = await confirmPending(req.pendingId, yesNo, req.scope, now());
+      emit({ type: "final", reply: r.reply, changed: r.changed });
+      return;
     }
 
     const client = deps.client ?? defaultClient();
@@ -147,7 +169,7 @@ export async function runAgent(req: ChatRequest, emit: (e: AgentEvent) => void, 
 
     const scope = await resolveScope(req.scope);
     const today = todayIn(instance.timeZone, now());
-    const ctx = { scope, today };
+    const ctx = { scope, today, touched: new Set<string>() };
     const messages: ChatCompletionMessageParam[] = [
       { role: "developer", content: buildSystemPrompt({ today, spaces: scope.spaces }) },
       ...history,
@@ -165,10 +187,12 @@ export async function runAgent(req: ChatRequest, emit: (e: AgentEvent) => void, 
         prompt_cache_key: "matzpen-agent",
         ...(withReasoning ? { reasoning_effort: "low" as const } : {}),
       };
+      const left = deadline - Date.now();
+      if (left < MIN_CALL_MS) throw new AgentDeadlineError();
       const reservation = await checkBudget(estimateCallUsd(promptChars(messages)), now());
       let completion: ChatCompletion;
       try {
-        completion = await client.chat.completions.create(body);
+        completion = await client.chat.completions.create(body, { timeout: Math.min(MAX_CALL_MS, left - 1_000) });
       } catch (e) {
         // A timed-out call may still be billed — keep it charged; other failures are free.
         if (e instanceof APIConnectionTimeoutError) await recordUsage(reservation, null);
@@ -186,7 +210,6 @@ export async function runAgent(req: ChatRequest, emit: (e: AgentEvent) => void, 
       return msg;
     };
 
-    let pending: PendingActionView | undefined;
     let reply: string | null = null;
     for (let round = 0; round < MAX_TOOL_ROUNDS && !pending; round++) {
       const msg = await call("auto");
@@ -220,12 +243,15 @@ export async function runAgent(req: ChatRequest, emit: (e: AgentEvent) => void, 
     }
     const text =
       reply?.trim() ||
-      (pending
-        ? `${pending.summary} — נדרש אישור. אפשר לאשר בכפתורים או לכתוב "כן".`
-        : "לא הצלחתי להשלים את הבקשה. נסה לנסח אותה בצורה ממוקדת יותר.");
+      (pending ? pendingText(pending) : "לא הצלחתי להשלים את הבקשה. נסה לנסח אותה בצורה ממוקדת יותר.");
     emit({ type: "final", reply: text, changed, ...(pending ? { pending } : {}) });
   } catch (e) {
-    if (!(e instanceof BudgetExceededError)) logError(e);
+    if (!(e instanceof BudgetExceededError || e instanceof AgentDeadlineError)) logError(e);
+    // A parked action must always reach the screen as a card — never stay live unseen.
+    if (pending) {
+      emit({ type: "final", reply: pendingText(pending), changed, pending });
+      return;
+    }
     const message = hebrewError(e);
     // Writes already done must still reach the client, so it refetches.
     if (changed) emit({ type: "final", reply: `${message} (חלק מהפעולות כבר בוצעו והמסך עודכן.)`, changed: true });

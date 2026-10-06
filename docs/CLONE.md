@@ -36,7 +36,7 @@ npm run db:seed
 ```
 
 **5. פריסה**
-ב-Vercel: New Project → מחברים את הריפו → מגדירים את שלושת המשתנים: `DATABASE_URL`, `OPENAI_API_KEY` (של הלקוח), `APP_PASSWORD` → Deploy.
+ב-Vercel: New Project → מחברים את הריפו → מגדירים את המשתנים: `DATABASE_URL` (הכתובת עם `-pooler`), `OPENAI_API_KEY` (של הלקוח), `APP_PASSWORD`, ו-`SESSION_SECRET` (מחרוזת אקראית חדשה לכל לקוח: `openssl rand -base64 32`) → Deploy.
 
 **6. בדיקה ומסירה**
 

@@ -1,12 +1,13 @@
 /**
  * Server-enforced safety for the agent. Nothing here trusts the model:
  *   1. Scope — every read and write is limited to the spaces the user selected.
- *   2. Confirmation — deletes, and writes touching more than CONFIRM_THRESHOLD tasks,
- *      are parked in `pending_actions` and run only on an explicit "yes".
+ *   2. Confirmation — deletes, and writes touching more than CONFIRM_THRESHOLD tasks in one
+ *      user message (counted across all tool calls), are parked in `pending_actions` and run
+ *      only on an explicit "yes".
  *   3. Exact replay — a confirmed action touches exactly the stored task ids, once.
  */
 import "server-only";
-import { and, desc, eq, gt } from "drizzle-orm";
+import { and, eq, gt } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { pendingActions } from "@/db/schema";
@@ -188,15 +189,27 @@ export type WriteOutcome =
 /**
  * Runs a validated, in-scope write — or parks it for confirmation.
  * `affected` are the current tasks for update/delete (for the confirmation card).
+ * `touched` holds the tasks this user message already changed without a "yes". The threshold
+ * applies to the whole message, so a bulk change split into several small calls still stops.
  */
-export async function submitWrite(plan: WritePlan, scope: ResolvedScope, affected: Task[] = []): Promise<WriteOutcome> {
-  if (!needsConfirmation(plan.kind, planCount(plan))) {
-    return { executed: true, ...(await executePlan(plan)) };
+export async function submitWrite(
+  plan: WritePlan,
+  scope: ResolvedScope,
+  affected: Task[] = [],
+  touched: Set<string> = new Set(),
+): Promise<WriteOutcome> {
+  const ids = plan.kind === "add" ? [] : plan.ids;
+  const total = plan.kind === "add" ? touched.size + plan.tasks.length : new Set([...touched, ...ids]).size;
+  if (!needsConfirmation(plan.kind, total)) {
+    const result = await executePlan(plan);
+    for (const id of plan.kind === "add" ? result.tasks.map((t) => t.id) : ids) touched.add(id);
+    return { executed: true, ...result };
   }
   return { executed: false, pending: await createPending(plan, scope, affected) };
 }
 
-const MAX_CARD_ITEMS = 12;
+/** The card lists every title (it scrolls); the cap only guards against a runaway payload. */
+const MAX_CARD_ITEMS = 500;
 
 async function createPending(plan: WritePlan, scope: ResolvedScope, affected: Task[]): Promise<PendingActionView> {
   const summary = describePlan(plan, scope);
@@ -226,17 +239,6 @@ async function createPending(plan: WritePlan, scope: ResolvedScope, affected: Ta
 /** Cancels every still-pending action (a newer request makes old cards stale). */
 export async function supersedePending(): Promise<void> {
   await db().update(pendingActions).set({ status: "cancelled" }).where(eq(pendingActions.status, "pending"));
-}
-
-/** The most recent pending action that can still be confirmed, if any. */
-export async function findLivePending(now: Date = new Date()): Promise<string | null> {
-  const [row] = await db()
-    .select({ id: pendingActions.id })
-    .from(pendingActions)
-    .where(and(eq(pendingActions.status, "pending"), gt(pendingActions.expiresAt, now)))
-    .orderBy(desc(pendingActions.createdAt))
-    .limit(1);
-  return row?.id ?? null;
 }
 
 // ── Confirmation ──────────────────────────────────────────────────────────

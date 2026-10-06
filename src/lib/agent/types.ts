@@ -19,6 +19,8 @@ export interface ChatRequest {
   /** Conversation so far, oldest first, ending with the new user message. The client sends at most the last 20. */
   messages: ChatMessage[];
   scope: AgentScope;
+  /** The confirmation card open in this chat, if any. A bare "כן"/"לא" answers this card and no other. */
+  pendingId?: string;
 }
 
 export interface ConfirmRequest {
@@ -35,7 +37,7 @@ export interface PendingActionView {
   summary: string;
   /** How many tasks will change. */
   count: number;
-  /** Up to 12 affected tasks for the confirmation card. */
+  /** The affected tasks, for the confirmation card. */
   items: { id: string | null; title: string; spaceName: string }[];
   expiresAt: string;
 }

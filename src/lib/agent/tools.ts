@@ -175,6 +175,8 @@ export interface ToolContext {
   scope: ResolvedScope;
   /** Today in the owner's time zone, YYYY-MM-DD. */
   today: string;
+  /** Tasks written without confirmation so far in this user message (see submitWrite). */
+  touched?: Set<string>;
 }
 
 export interface ToolOutcome {
@@ -290,7 +292,7 @@ async function addTasks(raw: unknown, ctx: ToolContext): Promise<ToolOutcome> {
     if (!t.success) return fail(`tasks.${i}: ${issues(t.error)}. לא בוצע דבר.`);
     tasks.push(t.data);
   }
-  return writeResult(await submitWrite({ kind: "add", tasks }, ctx.scope), ctx.scope, "added");
+  return writeResult(await submitWrite({ kind: "add", tasks }, ctx.scope, [], ctx.touched), ctx.scope, "added");
 }
 
 async function updateTasksTool(raw: unknown, ctx: ToolContext): Promise<ToolOutcome> {
@@ -309,7 +311,7 @@ async function updateTasksTool(raw: unknown, ctx: ToolContext): Promise<ToolOutc
   const tasks = await loadTasksInScope(p.data.ids, ctx.scope);
   if (!tasks.ok) return fail(tasks.error);
   const plan: WritePlan = { kind: "update", ids: tasks.value.map((t) => t.id), changes: changes.data as TaskPatch };
-  return writeResult(await submitWrite(plan, ctx.scope, tasks.value), ctx.scope, "updated");
+  return writeResult(await submitWrite(plan, ctx.scope, tasks.value, ctx.touched), ctx.scope, "updated");
 }
 
 async function deleteTasksTool(raw: unknown, ctx: ToolContext): Promise<ToolOutcome> {
@@ -318,7 +320,7 @@ async function deleteTasksTool(raw: unknown, ctx: ToolContext): Promise<ToolOutc
   const tasks = await loadTasksInScope(p.data.ids, ctx.scope);
   if (!tasks.ok) return fail(tasks.error);
   const plan: WritePlan = { kind: "delete", ids: tasks.value.map((t) => t.id) };
-  return writeResult(await submitWrite(plan, ctx.scope, tasks.value), ctx.scope, "deleted");
+  return writeResult(await submitWrite(plan, ctx.scope, tasks.value, ctx.touched), ctx.scope, "deleted");
 }
 
 /** Same numbers as the dashboard: overdue and closed-this-week come from getSpaceStats. */

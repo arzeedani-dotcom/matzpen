@@ -1,0 +1,3 @@
+#!/bin/sh
+# Runs before every git push: refuses to publish anything that looks like a secret or private data.
+npm run -s check:secrets

@@ -15,6 +15,7 @@ const bodySchema = z.object({
     .refine((m) => m.at(-1)?.role === "user", "ההודעה האחרונה חייבת להיות של המשתמש")
     .refine((m) => m.at(-1)!.content.trim().length > 0, "ההודעה ריקה"),
   scope: agentScopeSchema,
+  pendingId: z.uuid().optional(),
 });
 
 export const POST = handle(async (req: Request) => {

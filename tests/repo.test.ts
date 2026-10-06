@@ -20,6 +20,19 @@ async function seedSpace(name = "בית") {
   return createSpace({ name, color: "emerald", view: "list" });
 }
 
+describe("moving tasks", () => {
+  it("a task moved into another space lands at the end of its column there", async () => {
+    const a = await seedSpace("א");
+    const b = await seedSpace("ב");
+    await createTasks([{ spaceId: b.id, title: "b1" }, { spaceId: b.id, title: "b2" }]);
+    const [moved] = await createTasks([{ spaceId: a.id, title: "a1" }]);
+    const [after] = await updateTasks([moved.id], { spaceId: b.id });
+    const others = (await listTasks({ spaceIds: [b.id] })).filter((t) => t.id !== moved.id);
+    expect(after.position).toBeGreaterThan(Math.max(...others.map((t) => t.position)));
+    expect((await listTasks({ spaceIds: [b.id] })).at(-1)?.id).toBe(moved.id);
+  });
+});
+
 describe("spaces", () => {
   it("creates spaces in order and deletes with their tasks", async () => {
     const a = await seedSpace("א");

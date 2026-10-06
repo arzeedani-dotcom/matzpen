@@ -57,9 +57,9 @@ function fakeClient(replies: Reply[]) {
   return { client, create, bodies };
 }
 
-async function collect(messages: ChatMessage[], client?: ChatClient, now?: Date) {
+async function collect(messages: ChatMessage[], client?: ChatClient, now?: Date, pendingId?: string) {
   const events: AgentEvent[] = [];
-  await runAgent({ messages, scope: { mode: "all" } }, (e) => events.push(e), {
+  await runAgent({ messages, scope: { mode: "all" }, pendingId }, (e) => events.push(e), {
     client,
     now: now ? () => now : undefined,
   });
@@ -171,23 +171,91 @@ describe("engine loop", () => {
     expect(String(log.mock.calls[0][0])).not.toContain("abcdef123456");
   });
 
-  it("answers a typed yes/no to the live pending action without the model", async () => {
+  it("answers a typed yes/no to the card open in this chat without the model", async () => {
     const s = await createSpace({ name: "בית", color: "emerald", view: "list" });
     const tasks = await createTasks([1, 2].map((i) => ({ spaceId: s.id, title: `t${i}` })));
     const { client } = fakeClient([
       { calls: [{ name: "delete_tasks", args: { ids: tasks.map((t) => t.id) } }] },
       { content: "למחוק 2 משימות? אפשר לאשר." },
     ]);
-    await collect([user("תמחק הכל")], client);
+    const first = await collect([user("תמחק הכל")], client);
+    const pendingId = first.final.type === "final" ? first.final.pending?.id : undefined;
+    expect(pendingId).toBeDefined();
     const { create } = fakeClient([{ content: "x" }]);
     const silent: ChatClient = { chat: { completions: { create } } };
     const { final } = await collect(
       [user("תמחק הכל"), { role: "assistant", content: "למחוק 2 משימות?" }, user("כן!")],
       silent,
+      undefined,
+      pendingId,
     );
     expect(final).toEqual({ type: "final", reply: "בוצע: נמחקו 2 משימות.", changed: true });
     expect(create).not.toHaveBeenCalled();
     expect(await listTasks()).toHaveLength(0);
+  });
+
+  it("a bare yes without a card in this chat never confirms a card from another tab", async () => {
+    const s = await createSpace({ name: "בית", color: "emerald", view: "list" });
+    const tasks = await createTasks([1, 2].map((i) => ({ spaceId: s.id, title: `t${i}` })));
+    const tabA = fakeClient([
+      { calls: [{ name: "delete_tasks", args: { ids: tasks.map((t) => t.id) } }] },
+      { content: "למחוק?" },
+    ]);
+    await collect([user("תמחק הכל")], tabA.client);
+    const tabB = fakeClient([{ content: "בסדר, מה להוסיף?" }]);
+    const { final } = await collect(
+      [user("תוסיף משימה"), { role: "assistant", content: "רוצה שאוסיף?" }, user("כן")],
+      tabB.client,
+    );
+    expect(tabB.create).toHaveBeenCalled();
+    expect(final).toMatchObject({ type: "final", changed: false });
+    expect(await listTasks()).toHaveLength(2);
+  });
+
+  it("counts every write in one message: a bulk update split into calls of 3 still needs a yes", async () => {
+    const s = await createSpace({ name: "בית", color: "emerald", view: "list" });
+    const tasks = await createTasks(Array.from({ length: 12 }, (_, i) => ({ spaceId: s.id, title: `t${i}`, notes: "חשוב" })));
+    const chunk = (i: number) => tasks.slice(i * 3, i * 3 + 3).map((t) => t.id);
+    const { client } = fakeClient([
+      {
+        calls: [0, 1, 2, 3].map((i) => ({
+          name: "update_tasks",
+          args: { ids: chunk(i), changes: { status: "done", notes: null } },
+        })),
+      },
+      { content: "סימנתי 3, השאר ממתינות לאישור." },
+    ]);
+    const { final } = await collect([user("תסמן הכל כהושלם")], client);
+    const after = await listTasks();
+    expect(after.filter((t) => t.status === "done")).toHaveLength(3);
+    expect(after.filter((t) => t.notes === "חשוב")).toHaveLength(9);
+    expect(final).toMatchObject({ type: "final", pending: { kind: "update", count: 3 } });
+  });
+
+  it("counts adds across calls too", async () => {
+    await createSpace({ name: "בית", color: "emerald", view: "list" });
+    const add = (n: number) => ({
+      name: "add_tasks",
+      args: { tasks: Array.from({ length: n }, (_, i) => ({ title: `x${n}-${i}`, space: "בית" })) },
+    });
+    const { client } = fakeClient([{ calls: [add(3)] }, { calls: [add(1)] }, { content: "ok" }]);
+    const { final } = await collect([user("תוסיף")], client);
+    expect(await listTasks()).toHaveLength(3);
+    expect(final).toMatchObject({ type: "final", pending: { kind: "add", count: 1 } });
+  });
+
+  it("a parked action always reaches the screen, even when the closing model call fails", async () => {
+    const s = await createSpace({ name: "בית", color: "emerald", view: "list" });
+    const [t] = await createTasks([{ spaceId: s.id, title: "חלב" }]);
+    let n = 0;
+    const create = vi.fn(async () => {
+      if (n++ === 0) return completion({ calls: [{ name: "delete_tasks", args: { ids: [t.id] } }] }, 0);
+      throw new Error("network down");
+    });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { final } = await collect([user("תמחק את החלב")], { chat: { completions: { create } } });
+    expect(final).toMatchObject({ type: "final", pending: { kind: "delete", count: 1 } });
+    expect(await listTasks()).toHaveLength(1);
   });
 
   it("parses bare yes/no in Hebrew, Arabic and English only", () => {

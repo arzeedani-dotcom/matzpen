@@ -28,8 +28,9 @@ function LoginForm() {
     setError(null);
     try {
       await api("/api/auth/login", { method: "POST", json: { password } });
-      const next = params.get("next");
-      window.location.href = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+      // Only ever back into this site: "/\\evil.com" and friends resolve to another origin and are dropped.
+      const next = new URL(params.get("next") ?? "/", window.location.origin);
+      window.location.href = next.origin === window.location.origin ? next.pathname + next.search : "/";
     } catch (err) {
       setError(err instanceof Error ? err.message : "הכניסה נכשלה");
       setBusy(false);

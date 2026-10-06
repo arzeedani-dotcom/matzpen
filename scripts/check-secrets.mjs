@@ -8,7 +8,14 @@ const files = execFileSync("git", ["ls-files", "--cached", "--others", "--exclud
   .filter(Boolean);
 
 /** Files that must never be published, whatever is inside them. */
-const FORBIDDEN_PATHS = [/(^|\/)\.env(\.(?!example$)[^/]*)?$/, /^seed\/private\//, /\.pem$/, /(^|\/)\.vercel\//, /^\.dev-db\//];
+const FORBIDDEN_PATHS = [
+  /(^|\/)\.env(\.(?!example$)[^/]*)?$/,
+  /^seed\/private\//,
+  /\.pem$/,
+  /(^|\/)\.vercel\//,
+  /^\.dev-db[^/]*\//,
+  /^tests\/e2e\/\.auth\//,
+];
 
 const PATTERNS = [
   ["OpenAI API key", /\bsk-(?:proj-|svcacct-)?[A-Za-z0-9_-]{20,}/],
@@ -17,7 +24,9 @@ const PATTERNS = [
   ["GitHub token", /\bgh[pousr]_[A-Za-z0-9]{30,}\b/],
   ["Vercel token", /\bvercel_[A-Za-z0-9]{20,}\b/i],
   ["Password in an env line", /^\s*(?:APP_PASSWORD|OPENAI_API_KEY|DATABASE_URL)\s*=\s*["']?[^\s"'#<$]{6,}/m],
-  ["E-mail address of a person", /\b[A-Za-z0-9._%+-]+@(?:gmail|outlook|hotmail|yahoo|walla)\.[a-z.]{2,}\b/i],
+  ["E-mail address of a person", /\b[A-Za-z0-9._%+-]+@(?:gmail|outlook|hotmail|yahoo|walla|icloud|live|proton(?:mail)?)\.[a-z.]{2,}\b/i],
+  ["Israeli phone number", /(?:\+972[-\s]?|\b0)5\d[-\s]?\d{3}[-\s]?\d{4}\b/],
+  ["Session cookie", /\bv1\.\d{13}\.[A-Za-z0-9_-]{43}\b/],
 ];
 
 /** Lines that are allowed to look like a secret: documentation of the local dev database. */

@@ -85,9 +85,12 @@ export async function deleteSpace(id: string): Promise<{ deletedTasks: number } 
   return rows.length ? { deletedTasks: count } : null;
 }
 
+/** Sets the sidebar order. Spaces missing from `ids` keep their relative order after the listed ones. */
 export async function reorderSpaces(ids: string[]): Promise<void> {
+  const listed = new Set(ids);
+  const rest = (await listSpaces()).map((s) => s.id).filter((id) => !listed.has(id));
   await db().transaction(async (tx) => {
-    for (const [i, id] of ids.entries()) {
+    for (const [i, id] of [...listed, ...rest].entries()) {
       await tx.update(spaces).set({ position: i }).where(eq(spaces.id, id));
     }
   });
@@ -199,7 +202,14 @@ export async function updateTasks(ids: string[], patch: TaskPatch): Promise<Task
   if (patch.notes !== undefined) set.notes = patch.notes?.trim() || null;
   if (patch.priority !== undefined) set.priority = patch.priority;
   if (patch.dueDate !== undefined) set.dueDate = patch.dueDate;
-  if (patch.spaceId !== undefined) set.spaceId = patch.spaceId;
+  if (patch.spaceId !== undefined) {
+    set.spaceId = patch.spaceId;
+    // A task moved into another space goes to the end of its column there.
+    if (patch.position === undefined) {
+      set.position = sql`case when ${tasks.spaceId} = ${patch.spaceId} then ${tasks.position}
+        else (select coalesce(max(t.position), 0) + 1 from ${tasks} t where t.space_id = ${patch.spaceId}) end`;
+    }
+  }
   if (patch.position !== undefined) set.position = patch.position;
   if (patch.status !== undefined) {
     set.status = patch.status;
