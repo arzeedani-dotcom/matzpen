@@ -1,26 +1,132 @@
 @import "tailwindcss";
 
+/* Dark mode follows <html data-theme="dark">, set before paint by the theme script in layout.tsx. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * Matzpen palette — a navigation chart: deep petrol ink for structure, cool sea-paper
+ * for the page, and one brass accent (the compass needle) reserved for "now":
+ * today's date, the agent button, keyboard focus.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --paper: #f3f6f6;
+  --surface: #ffffff;
+  --surface-2: #f8fafa;
+  --line: #dce3e4;
+  --line-strong: #c3cdcf;
+  --text: #13262a;
+  --muted: #5a6d71;
+  --faint: #8a9a9d;
+  --ink: #0e3b43;
+  --ink-2: #155058;
+  --ink-text: #e6f0f0;
+  --ink-muted: #9fbcbf;
+  --brass: #b9852c;
+  --brass-soft: #f6ead3;
+  --danger: #dc2626;
+  --success: #15803d;
+  --shadow-pop: 0 12px 32px -8px rgb(14 59 67 / 0.25), 0 2px 6px rgb(14 59 67 / 0.08);
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --paper: #0b1618;
+  --surface: #122125;
+  --surface-2: #162a2e;
+  --line: #22373b;
+  --line-strong: #2f4a4f;
+  --text: #e2ebeb;
+  --muted: #94a9ac;
+  --faint: #6b8286;
+  --ink: #071f23;
+  --ink-2: #0f3238;
+  --ink-text: #dceaea;
+  --ink-muted: #86a6a9;
+  --brass: #d6a54a;
+  --brass-soft: #3a2f1a;
+  --danger: #f87171;
+  --success: #4ade80;
+  --shadow-pop: 0 16px 40px -8px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.4);
+  color-scheme: dark;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-text: var(--ink-text);
+  --color-ink-muted: var(--ink-muted);
+  --color-brass: var(--brass);
+  --color-brass-soft: var(--brass-soft);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --shadow-pop: var(--shadow-pop);
+  --font-sans: var(--font-hebrew), var(--font-arabic), system-ui, sans-serif;
+  --radius-chip: 6px;
+  --radius-card: 10px;
+  --radius-panel: 16px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background: var(--paper);
+  color: var(--text);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-hebrew), var(--font-arabic), system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* One focus style everywhere: the brass needle. */
+:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--brass-soft);
+}
+
+/* Arabic glyphs need air; never clip them (no overflow:hidden on running text). */
+:lang(ar) {
+  line-height: 1.8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Thin, quiet scrollbars inside panels. */
+.scroll-quiet {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.animate-pop {
+  animation: pop-in 160ms ease-out;
 }

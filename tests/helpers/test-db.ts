@@ -30,7 +30,7 @@ function migrate(): Promise<void> {
 export async function resetDb(): Promise<void> {
   await migrate();
   await pg.exec(
-    'truncate "matzpen"."tasks", "matzpen"."spaces", "matzpen"."settings", "matzpen"."pending_actions", "matzpen"."login_attempts" cascade',
+    'truncate "matzpen"."tasks", "matzpen"."spaces", "matzpen"."settings", "matzpen"."pending_actions", "matzpen"."login_attempts", "matzpen"."agent_usage" cascade',
   );
 }
 

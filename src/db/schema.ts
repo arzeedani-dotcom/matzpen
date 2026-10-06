@@ -73,3 +73,13 @@ export const loginAttempts = appSchema.table("login_attempts", {
   firstAt: timestamp("first_at", { withTimezone: true }).notNull().defaultNow(),
   lockedUntil: timestamp("locked_until", { withTimezone: true }),
 });
+
+/** Agent spend per calendar month ("YYYY-MM", owner's time zone) — enforces the hard monthly budget. */
+export const agentUsage = appSchema.table("agent_usage", {
+  month: text("month").primaryKey(),
+  inputTokens: integer("input_tokens").notNull().default(0),
+  outputTokens: integer("output_tokens").notNull().default(0),
+  requests: integer("requests").notNull().default(0),
+  costUsd: doublePrecision("cost_usd").notNull().default(0),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

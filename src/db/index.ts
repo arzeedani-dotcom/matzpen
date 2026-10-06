@@ -12,7 +12,15 @@ export function db(): DB {
   if (globalForDb.__matzpenDb) return globalForDb.__matzpenDb;
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set");
-  const client = postgres(url, { prepare: false, max: 3, idle_timeout: 20, connect_timeout: 15 });
+  const local = /@(localhost|127\.0\.0\.1)[:/]/.test(url);
+  const client = postgres(url, {
+    prepare: false,
+    max: Number(process.env.DB_POOL_MAX) || 3,
+    idle_timeout: 20,
+    connect_timeout: 15,
+    // Hosted Postgres requires TLS; the local dev database (PGlite) has none.
+    ssl: local ? false : "require",
+  });
   globalForDb.__matzpenDb = drizzle(client, { schema });
   return globalForDb.__matzpenDb;
 }

@@ -1,5 +1,14 @@
 CREATE SCHEMA IF NOT EXISTS "matzpen";
 --> statement-breakpoint
+CREATE TABLE "matzpen"."agent_usage" (
+	"month" text PRIMARY KEY NOT NULL,
+	"input_tokens" integer DEFAULT 0 NOT NULL,
+	"output_tokens" integer DEFAULT 0 NOT NULL,
+	"requests" integer DEFAULT 0 NOT NULL,
+	"cost_usd" double precision DEFAULT 0 NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "matzpen"."login_attempts" (
 	"ip" text PRIMARY KEY NOT NULL,
 	"count" integer DEFAULT 0 NOT NULL,

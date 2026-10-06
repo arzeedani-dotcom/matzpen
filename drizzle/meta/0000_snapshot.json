@@ -1,9 +1,63 @@
 {
-  "id": "f5e4c260-a27a-4e72-87be-27c7032c4e07",
+  "id": "cd5c8df9-80f3-4503-929b-3c19dc6b1d8a",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "matzpen.agent_usage": {
+      "name": "agent_usage",
+      "schema": "matzpen",
+      "columns": {
+        "month": {
+          "name": "month",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "input_tokens": {
+          "name": "input_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "output_tokens": {
+          "name": "output_tokens",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "requests": {
+          "name": "requests",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "cost_usd": {
+          "name": "cost_usd",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "matzpen.login_attempts": {
       "name": "login_attempts",
       "schema": "matzpen",
