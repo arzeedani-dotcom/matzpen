@@ -12,6 +12,7 @@ import { VIEW_ICONS } from "@/components/space/view-glyph";
 import { KanbanView } from "@/components/views/kanban-view";
 import { ListView } from "@/components/views/list-view";
 import { CalendarView } from "@/components/views/calendar-view";
+import { textDir } from "@/lib/text-dir";
 
 export default function SpacePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -50,7 +51,7 @@ export default function SpacePage({ params }: { params: Promise<{ id: string }> 
         <div className="flex min-w-0 items-center gap-3">
           <span className="h-8 w-1.5 shrink-0 rounded-full" style={{ background: color }} aria-hidden />
           <div className="min-w-0">
-            <h1 className="truncate text-2xl font-bold" dir="auto">
+            <h1 className="truncate text-2xl font-bold" dir={textDir(space.name)}>
               {space.name}
             </h1>
             <p className="text-sm text-muted">{tasksLoading ? "טוען…" : open === 0 ? "אין משימות פתוחות" : `${open} משימות פתוחות`}</p>

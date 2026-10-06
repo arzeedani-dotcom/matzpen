@@ -3,6 +3,7 @@
 import { Check } from "lucide-react";
 import { spaceColorHex, type Space } from "@/lib/domain";
 import { cn } from "@/components/ui/cn";
+import { textDir } from "@/lib/text-dir";
 
 /**
  * Which spaces the dashboard shows. One line that scrolls sideways on a phone
@@ -42,7 +43,7 @@ export function SpaceFilter({
               className="size-2.5 shrink-0 rounded-full border-2"
               style={{ borderColor: color, background: on ? color : "transparent" }}
             />
-            <span dir="auto" className="max-w-[12rem] truncate">
+            <span dir={textDir(s.name)} className="max-w-[12rem] truncate">
               {s.name}
             </span>
           </Chip>

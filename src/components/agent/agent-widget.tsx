@@ -9,11 +9,13 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ArrowUp, Check, ChevronDown, Maximize2, Minimize2, Sparkles, SquarePen, X } from "lucide-react";
 import { MAX_HISTORY, type AgentScope, type PendingActionView } from "@/lib/agent/types";
+import { parseYesNo } from "@/lib/agent/yes-no";
 import { agentApi } from "@/lib/client/agent";
 import { refreshAll, useSpaces } from "@/lib/client/api";
 import { setAgentOpen, setAgentScopeOverride, useAgentOpen, useAgentScope } from "@/lib/client/store";
 import { spaceColorHex, type Space } from "@/lib/domain";
 import { cn } from "@/components/ui/cn";
+import { textDir } from "@/lib/text-dir";
 
 type PendingState = "open" | "confirmed" | "cancelled" | "closed";
 
@@ -169,7 +171,8 @@ function Panel() {
       .slice(-MAX_HISTORY)
       .map((e) => ({ role: e.role, content: e.content }));
     const pendingId = entries.findLast((e) => e.pending && e.pendingState === "open")?.pending?.id;
-    closeCards("closed");
+    const answer = pendingId ? parseYesNo(content) : null;
+    closeCards(answer === "confirm" ? "confirmed" : answer === "cancel" ? "cancelled" : "closed");
     push({ role: "user", content });
     setBusy("חושב…");
     abort.current = new AbortController();
@@ -243,7 +246,7 @@ function Panel() {
             className="flex max-w-full items-center gap-1 rounded text-xs text-ink-muted hover:text-ink-text"
           >
             <span className="shrink-0">עובד על:</span>
-            <span dir="auto" className="truncate font-semibold text-ink-text">
+            <span dir={textDir(scopeLabel(scope, spaces))} className="truncate font-semibold text-ink-text">
               {scopeLabel(scope, spaces)}
             </span>
             <ChevronDown className="size-3.5 shrink-0" aria-hidden />
@@ -291,7 +294,7 @@ function Panel() {
         <textarea
           id="agent-input"
           ref={textarea}
-          dir="auto"
+          dir={textDir(input)}
           rows={1}
           value={input}
           maxLength={4000}
@@ -379,7 +382,7 @@ function ScopePicker({ spaces, scope, onClose }: { spaces: Space[]; scope: Agent
           {spaces.map((s) => (
             <ScopeRow key={s.id} checked={!all && chosen.has(s.id)} onClick={() => toggle(s.id)}>
               <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ background: spaceColorHex(s.color) }} />
-              <span dir="auto" className="truncate">
+              <span dir={textDir(s.name)} className="truncate">
                 {s.name}
               </span>
             </ScopeRow>
@@ -444,7 +447,7 @@ function Message({
     <div className={cn("flex flex-col gap-2", mine ? "items-start" : "items-end")}>
       {entry.content && (
         <div
-          dir="auto"
+          dir={textDir(entry.content)}
           className={cn(
             "max-w-[88%] rounded-[var(--radius-panel)] px-3.5 py-2.5 text-[15px] leading-relaxed break-words whitespace-pre-wrap",
             mine && "rounded-ss-md bg-ink text-ink-text",
@@ -493,7 +496,7 @@ function ConfirmCard({
       <p className="font-semibold">
         הפעולה {KIND_VERB[pending.kind]} {count}
       </p>
-      <p dir="auto" className="mt-0.5 text-sm text-muted">
+      <p dir={textDir(pending.summary)} className="mt-0.5 text-sm text-muted">
         {pending.summary}
       </p>
       <ul className="scroll-quiet mt-2.5 max-h-44 space-y-1 overflow-y-auto text-sm">
@@ -502,10 +505,10 @@ function ConfirmCard({
             <span aria-hidden className="text-faint">
               •
             </span>
-            <span dir="auto" className="min-w-0 flex-1 break-words">
+            <span dir={textDir(item.title)} className="min-w-0 flex-1 break-words">
               {item.title}
             </span>
-            <span dir="auto" className="shrink-0 text-xs text-faint">
+            <span dir={textDir(item.spaceName)} className="shrink-0 text-xs text-faint">
               {item.spaceName}
             </span>
           </li>

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/components/ui/cn";
 import { Linkified, PriorityPicker, StatusPicker } from "./bits";
+import { textDir } from "@/lib/text-dir";
 
 interface Draft {
   title: string;
@@ -180,7 +181,7 @@ function TaskEditorInner() {
           <span className="sr-only">כותרת</span>
           <input
             ref={titleRef}
-            dir="auto"
+            dir={textDir(draft.title)}
             value={draft.title}
             maxLength={TITLE_MAX}
             onChange={(e) => set("title", e.target.value)}
@@ -248,7 +249,7 @@ function TaskEditorInner() {
         <Field label="הערות">
           {editingNotes ? (
             <textarea
-              dir="auto"
+              dir={textDir(draft.notes)}
               value={draft.notes}
               maxLength={NOTES_MAX}
               onChange={(e) => set("notes", e.target.value)}

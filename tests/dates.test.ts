@@ -103,3 +103,15 @@ describe("isValidISODate", () => {
     expect(isValidISODate("06/10/2026")).toBe(false);
   });
 });
+
+describe("textDir", () => {
+  it("is RTL whenever Hebrew or Arabic appears, LTR only for Latin-only text, RTL when empty", async () => {
+    const { textDir } = await import("@/lib/text-dir");
+    expect(textDir("zeedani.com — לחבר את Resend")).toBe("rtl");
+    expect(textDir("OpenAI — לבדוק את המכסה")).toBe("rtl");
+    expect(textDir("الذكاء الاصطناعي")).toBe("rtl");
+    expect(textDir("Buy milk")).toBe("ltr");
+    expect(textDir("")).toBe("rtl");
+    expect(textDir("2026")).toBe("rtl");
+  });
+});

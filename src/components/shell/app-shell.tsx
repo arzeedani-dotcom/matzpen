@@ -18,6 +18,7 @@ import { SpaceForm } from "@/components/space/space-form";
 import { AgentWidget } from "@/components/agent/agent-widget";
 import { CompassMark } from "./compass-mark";
 import { Toaster } from "./toaster";
+import { textDir } from "@/lib/text-dir";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -149,7 +150,7 @@ function Sidebar() {
             return (
               <li key={s.id} className="flex h-10 items-center gap-2.5 rounded-md px-2 text-[15px] text-ink-text">
                 <span className="h-4 w-1 shrink-0 rounded-full" style={{ background: spaceColorHex(s.color) }} />
-                <span className="min-w-0 flex-1 truncate" dir="auto">
+                <span className="min-w-0 flex-1 truncate" dir={textDir(s.name)}>
                   {s.name}
                 </span>
                 <button
@@ -174,7 +175,7 @@ function Sidebar() {
             <li key={s.id}>
               <NavLink href={href} active={pathname === href}>
                 <span className="h-4 w-1 shrink-0 rounded-full" style={{ background: spaceColorHex(s.color) }} />
-                <span className="truncate" dir="auto">
+                <span className="truncate" dir={textDir(s.name)}>
                   {s.name}
                 </span>
               </NavLink>

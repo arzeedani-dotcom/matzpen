@@ -25,6 +25,7 @@ import { Modal } from "@/components/ui/modal";
 import { moveTaskToDay, toggleTaskDone } from "./calendar/actions";
 import { useFillHeight, useIsPhone, useMonthParam } from "./calendar/hooks";
 import { TRAY_DROP_ID, countLabel, dayDropId, groupTasks, monthKeyOf, parseMonthKey, shiftMonth } from "./calendar/utils";
+import { textDir } from "@/lib/text-dir";
 
 /** More than this many tasks on one day collapse into "+N נוספות". */
 const MAX_PILLS = 3;
@@ -202,7 +203,7 @@ function Calendar({ space, tasks, today }: Props) {
                     openTaskEditor({ mode: "edit", task: t });
                   }}
                 >
-                  <span dir="auto" className={cn("block break-words font-medium", t.status === "done" && "text-muted line-through decoration-faint")}>
+                  <span dir={textDir(t.title)} className={cn("block break-words font-medium", t.status === "done" && "text-muted line-through decoration-faint")}>
                     {t.title}
                   </span>
                 </button>
@@ -347,7 +348,7 @@ function PillBody({ task, lifted = false }: { task: Task; lifted?: boolean }) {
       <span aria-hidden className="shrink-0 text-[10px]">
         {done ? "✓" : m.mark}
       </span>
-      <span dir="auto" className={cn("min-w-0 truncate", done && "line-through")}>
+      <span dir={textDir(task.title)} className={cn("min-w-0 truncate", done && "line-through")}>
         {task.title}
       </span>
     </div>

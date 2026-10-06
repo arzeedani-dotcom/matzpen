@@ -16,6 +16,7 @@ import {
   type Task,
 } from "@/lib/domain";
 import { cn } from "@/components/ui/cn";
+import { textDir } from "@/lib/text-dir";
 
 /**
  * Priority-colored text. In dark mode the fixed hues are lifted toward white so small text
@@ -166,11 +167,11 @@ export function StatusPicker({ value, onChange }: { value: Status; onChange: (s:
 
 const URL_RE = /(https?:\/\/[^\s<>"']+[^\s<>"'.,;:!?)\]])/g;
 
-/** Plain text with clickable links; keeps line breaks. Arabic runs get proper direction automatically (dir=auto). */
+/** Plain text with clickable links; keeps line breaks. */
 export function Linkified({ text, className }: { text: string; className?: string }) {
   const parts = text.split(URL_RE);
   return (
-    <p dir="auto" className={cn("whitespace-pre-wrap break-words", className)}>
+    <p dir={textDir(text)} className={cn("whitespace-pre-wrap break-words", className)}>
       {parts.map((part, i) =>
         i % 2 === 1 ? (
           <a key={i} href={part} target="_blank" rel="noreferrer noopener" className="text-sky-700 underline underline-offset-2 dark:text-sky-400" dir="ltr">

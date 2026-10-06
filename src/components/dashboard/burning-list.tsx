@@ -7,6 +7,7 @@ import { openTaskEditor, toast, toastError } from "@/lib/client/store";
 import { PRIORITY_META, spaceColorHex, type DashboardData, type Space, type Task } from "@/lib/domain";
 import { DueLabel, PriorityBadge, TaskCheck } from "@/components/task/bits";
 import { cn } from "@/components/ui/cn";
+import { textDir } from "@/lib/text-dir";
 
 type Group = "overdue" | "dueToday" | "urgent";
 
@@ -219,13 +220,13 @@ function TaskRow({
           }}
           className="block w-full text-start leading-snug font-medium break-words text-text"
         >
-          <span dir="auto">{task.title}</span>
+          <span dir={textDir(task.title)}>{task.title}</span>
         </button>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
           {space && (
             <span className="inline-flex min-w-0 items-center gap-1.5">
               <span aria-hidden className="size-2 shrink-0 rounded-full" style={{ background: spaceColorHex(space.color) }} />
-              <span dir="auto">{space.name}</span>
+              <span dir={textDir(space.name)}>{space.name}</span>
             </span>
           )}
           <DueLabel task={task} today={today} />

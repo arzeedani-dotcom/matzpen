@@ -6,6 +6,7 @@ import { taskActions } from "@/lib/client/api";
 import { toastError } from "@/lib/client/store";
 import { PRIORITIES, PRIORITY_META, TITLE_MAX, type Priority, type Task } from "@/lib/domain";
 import { cn } from "@/components/ui/cn";
+import { textDir } from "@/lib/text-dir";
 
 /**
  * The row at the top of the list: type, Enter, the task is in. Focus stays in the input
@@ -67,8 +68,7 @@ export function QuickAdd({
             setValue("");
           }
         }}
-        // Empty dir="auto" resolves to LTR and would push the Hebrew placeholder to the wrong side.
-        dir={value.trim() ? "auto" : "rtl"}
+        dir={textDir(value)}
         maxLength={TITLE_MAX}
         enterKeyHint="enter"
         autoComplete="off"

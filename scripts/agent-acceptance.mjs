@@ -1,4 +1,4 @@
-// Agent acceptance test — 10 scenarios against a RUNNING app with the REAL model.
+// Agent acceptance test — 11 scenarios against a RUNNING app with the REAL model.
 // It never touches existing data: it creates two temporary spaces, scopes the agent
 // to them, checks what actually happened in the database (via the API), then deletes them.
 //

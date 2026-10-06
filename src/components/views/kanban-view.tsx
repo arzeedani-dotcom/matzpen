@@ -25,6 +25,7 @@ import { openTaskEditor, toastError } from "@/lib/client/store";
 import { PRIORITY_META, STATUSES, STATUS_META, type Space, type Status, type Task } from "@/lib/domain";
 import { DueLabel, PriorityBadge } from "@/components/task/bits";
 import { cn } from "@/components/ui/cn";
+import { textDir } from "@/lib/text-dir";
 
 /** The "done" column shows the most recent ones until "show all" is pressed. */
 const DONE_VISIBLE = 20;
@@ -320,7 +321,7 @@ function Card({ task, today, lifted = false }: { task: Task; today: string; lift
       )}
       style={{ boxShadow: lifted ? undefined : `inset -3px 0 0 ${PRIORITY_META[task.priority].color}` }}
     >
-      <p dir="auto" className={cn("leading-snug font-medium break-words", done && "text-muted line-through decoration-faint")}>
+      <p dir={textDir(task.title)} className={cn("leading-snug font-medium break-words", done && "text-muted line-through decoration-faint")}>
         {task.title}
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1">

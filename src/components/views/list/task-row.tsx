@@ -9,6 +9,7 @@ import { openTaskEditor } from "@/lib/client/store";
 import { DueLabel, StatusBadge, TaskCheck } from "@/components/task/bits";
 import { cn } from "@/components/ui/cn";
 import { prefersReducedMotion, token } from "./motion";
+import { textDir } from "@/lib/text-dir";
 
 /** How long the checked row lingers (check pops, title strikes) before it folds away. */
 const LINGER_MS = 560;
@@ -141,7 +142,7 @@ export function OpenRow({
       </CheckGutter>
       <RowButton task={task}>
         <span
-          dir="auto"
+          dir={textDir(task.title)}
           className={cn(
             "min-w-0 flex-1 basis-44 break-words line-through decoration-transparent decoration-[1.5px] transition-[color,text-decoration-color] duration-300",
             done ? "text-muted decoration-faint" : "text-text",
@@ -175,7 +176,7 @@ export function DoneRow({ task, onToggle }: { task: Task; onToggle: (task: Task)
         <TaskCheck done onToggle={() => onToggle(task)} label={task.title} />
       </CheckGutter>
       <RowButton task={task}>
-        <span dir="auto" className="min-w-0 flex-1 basis-44 break-words text-muted line-through decoration-faint decoration-[1.5px]">
+        <span dir={textDir(task.title)} className="min-w-0 flex-1 basis-44 break-words text-muted line-through decoration-faint decoration-[1.5px]">
           {task.title}
         </span>
         {task.completedAt && (

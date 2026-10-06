@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { openSpaceForm } from "@/lib/client/store";
 import { spaceColorHex, type Space, type SpaceStats } from "@/lib/domain";
 import { cn } from "@/components/ui/cn";
+import { textDir } from "@/lib/text-dir";
 
 /**
  * One quiet card per selected space: its color on the start edge, its name, and three
@@ -57,7 +58,7 @@ function SpaceCard({ space, stats }: { space: Space; stats: SpaceStats | undefin
         className="absolute inset-y-0 start-0 w-[5px] rounded-s-[var(--radius-card)]"
         style={{ background: spaceColorHex(space.color) }}
       />
-      <div dir="auto" className="truncate py-0.5 font-semibold text-text">
+      <div dir={textDir(space.name)} className="truncate py-0.5 font-semibold text-text">
         {space.name}
       </div>
       {stats ? (

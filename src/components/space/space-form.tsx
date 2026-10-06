@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/components/ui/cn";
 import { ViewGlyph } from "./view-glyph";
+import { textDir } from "@/lib/text-dir";
 
 export function SpaceForm() {
   const state = useSpaceForm();
@@ -110,7 +111,7 @@ function SpaceFormInner() {
           <span className="mb-1.5 block text-sm font-medium text-muted">שם</span>
           <input
             id="space-name"
-            dir="auto"
+            dir={textDir(name)}
             value={name}
             maxLength={SPACE_NAME_MAX}
             onChange={(e) => setName(e.target.value)}
