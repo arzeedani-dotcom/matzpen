@@ -1,6 +1,6 @@
 // Screenshot a page of the running dev app, signed in.
 //   node scripts/shot.mjs <path-without-leading-slash, "" for dashboard> <name> [--mobile] [--dark] [--base=http://localhost:3100]
-// Saves PNG to "../03 - צילומי אימות/dev/<name>.png". Each call uses its own headless browser.
+// Saves PNG to "../03 - צילומי אימות/dev/<name>.png" (or --out=<dir>). Each call uses its own headless browser.
 import { chromium } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 
@@ -10,7 +10,7 @@ const path = "/" + rawPath.replace(/^\/+/, "");
 const base = flags.find((f) => f.startsWith("--base="))?.slice(7) ?? "http://localhost:3100";
 const mobile = flags.includes("--mobile");
 const dark = flags.includes("--dark");
-const out = "../03 - צילומי אימות/dev";
+const out = flags.find((f) => f.startsWith("--out="))?.slice(6) ?? "../03 - צילומי אימות/dev";
 mkdirSync(out, { recursive: true });
 
 const browser = await chromium.launch();
